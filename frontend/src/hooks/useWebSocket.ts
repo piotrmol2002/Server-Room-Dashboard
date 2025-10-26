@@ -65,10 +65,18 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         console.error('[WebSocket] Error:', error);
       };
 
-      ws.onclose = () => {
-        console.log('[WebSocket] Disconnected');
+      ws.onclose = (event) => {
+        console.log('[WebSocket] Disconnected', event.code, event.reason);
         setIsConnected(false);
         wsRef.current = null;
+
+        if (event.code === 1008) {
+          console.log('[WebSocket] Authentication failed, not reconnecting');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return;
+        }
 
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           reconnectAttemptsRef.current += 1;

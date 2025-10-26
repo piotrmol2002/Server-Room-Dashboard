@@ -29,6 +29,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Handle unauthorized responses (expired token)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authApi = {
   login: (data: LoginRequest) => api.post<AuthResponse>('/api/auth/login', data),
