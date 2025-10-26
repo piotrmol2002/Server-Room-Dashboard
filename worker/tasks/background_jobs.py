@@ -24,59 +24,42 @@ def simulate_server_metrics():
     db = SessionLocal()
     try:
         from sqlalchemy import text
-        result = db.execute(text("SELECT id, status, cpu_usage, ram_usage, temperature, uptime FROM servers"))
-        servers = result.fetchall()
+        sys.path.insert(0, '/app/app')
+        from models.server import Server, ServerStatus
+        from models.server_metrics_history import ServerMetricsHistory
+
+        servers = db.query(Server).all()
 
         metrics_updated = 0
         for server in servers:
-            server_id, status, cpu, ram, temp, uptime = server
-
-            if server_id not in simulation_engine.server_states:
-                is_online = status == 'online'
+            if server.id not in simulation_engine.server_states:
+                is_online = server.status == ServerStatus.ONLINE
                 simulation_engine.register_server(
-                    server_id=server_id,
+                    server_id=server.id,
                     is_online=is_online,
-                    current_cpu=cpu if is_online else 0.0,
-                    current_ram=ram if is_online else 0.0,
-                    current_temp=temp,
-                    uptime=uptime if is_online else 0
+                    current_cpu=server.cpu_usage if is_online else 0.0,
+                    current_ram=server.ram_usage if is_online else 0.0,
+                    current_temp=server.temperature,
+                    uptime=server.uptime if is_online else 0
                 )
 
-            snapshot = simulation_engine.simulate_tick(server_id, interval_seconds=10)
+            snapshot = simulation_engine.simulate_tick(server.id, interval_seconds=10)
 
-            db.execute(
-                text("""
-                    UPDATE servers
-                    SET cpu_usage = :cpu, ram_usage = :ram,
-                        temperature = :temp, uptime = :uptime, status = :status,
-                        updated_at = NOW()
-                    WHERE id = :id
-                """),
-                {
-                    'cpu': snapshot.cpu_usage,
-                    'ram': snapshot.ram_usage,
-                    'temp': snapshot.temperature,
-                    'uptime': snapshot.uptime,
-                    'status': snapshot.status,
-                    'id': server_id
-                }
-            )
+            server.cpu_usage = snapshot.cpu_usage
+            server.ram_usage = snapshot.ram_usage
+            server.temperature = snapshot.temperature
+            server.uptime = snapshot.uptime
+            server.status = ServerStatus.ONLINE if snapshot.status == 'online' else ServerStatus.OFFLINE
 
-            db.execute(
-                text("""
-                    INSERT INTO server_metrics_history
-                    (server_id, cpu_usage, ram_usage, temperature, uptime, status, timestamp)
-                    VALUES (:server_id, :cpu, :ram, :temp, :uptime, :status, NOW())
-                """),
-                {
-                    'server_id': server_id,
-                    'cpu': snapshot.cpu_usage,
-                    'ram': snapshot.ram_usage,
-                    'temp': snapshot.temperature,
-                    'uptime': snapshot.uptime,
-                    'status': snapshot.status
-                }
+            history = ServerMetricsHistory(
+                server_id=server.id,
+                cpu_usage=snapshot.cpu_usage,
+                ram_usage=snapshot.ram_usage,
+                temperature=snapshot.temperature,
+                uptime=snapshot.uptime,
+                status=snapshot.status
             )
+            db.add(history)
 
             metrics_updated += 1
 
