@@ -9,5 +9,7 @@ export function useAlerts(unreadOnly = false) {
       return response.data;
     },
     refetchInterval: 5000,
+    refetchOnWindowFocus: false,
+    staleTime: 4000,
   });
 }
