@@ -8,8 +8,8 @@ export function useAlerts(unreadOnly = false) {
       const response = await alertsApi.getAll(unreadOnly);
       return response.data;
     },
-    refetchInterval: 5000,
+    refetchInterval: 15000,
     refetchOnWindowFocus: false,
-    staleTime: 4000,
+    staleTime: 14000,
   });
 }

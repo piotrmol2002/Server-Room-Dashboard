@@ -14,6 +14,7 @@ venv/
 ENV/
 build/
 develop-eggs/
+.claude/
 dist/
 downloads/
 eggs/
@@ -54,3 +55,6 @@ postgres_data/
 # logs
 *.log
 logs/
+
+# my docs
+docs/

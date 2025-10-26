@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Alert, AlertLevel } from '../types';
 import { format } from 'date-fns';
 
@@ -19,7 +20,7 @@ const levelLabels = {
   [AlertLevel.CRITICAL]: 'Critical',
 };
 
-export default function AlertsList({ alerts }: AlertsListProps) {
+function AlertsList({ alerts }: AlertsListProps) {
   if (alerts.length === 0) {
     return (
       <div
@@ -131,3 +132,5 @@ export default function AlertsList({ alerts }: AlertsListProps) {
     </div>
   );
 }
+
+export default memo(AlertsList);

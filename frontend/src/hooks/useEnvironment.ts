@@ -8,8 +8,8 @@ export function useEnvironment() {
       const response = await environmentApi.get();
       return response.data;
     },
-    refetchInterval: 5000,
+    refetchInterval: 15000,
     refetchOnWindowFocus: false,
-    staleTime: 4000,
+    staleTime: 14000,
   });
 }

@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Environment } from '../types';
 
 interface EnvironmentPanelProps {
   environment: Environment;
 }
 
-export default function EnvironmentPanel({ environment }: EnvironmentPanelProps) {
+function EnvironmentPanel({ environment }: EnvironmentPanelProps) {
   return (
     <div
       style={{
@@ -91,3 +92,5 @@ export default function EnvironmentPanel({ environment }: EnvironmentPanelProps)
     </div>
   );
 }
+
+export default memo(EnvironmentPanel);

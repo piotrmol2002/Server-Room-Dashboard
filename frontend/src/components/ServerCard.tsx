@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Server, ServerStatus } from '../types';
 
 interface ServerCardProps {
@@ -18,7 +19,7 @@ const statusLabels = {
   [ServerStatus.ERROR]: 'Error',
 };
 
-export default function ServerCard({ server }: ServerCardProps) {
+function ServerCard({ server }: ServerCardProps) {
   const statusColor = statusColors[server.status];
   const statusLabel = statusLabels[server.status];
 
@@ -114,3 +115,5 @@ export default function ServerCard({ server }: ServerCardProps) {
     </div>
   );
 }
+
+export default memo(ServerCard);
