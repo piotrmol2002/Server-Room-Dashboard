@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 def can_modify_tasks(current_user: User = Depends(get_current_active_user)) -> User:
-    if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR, UserRole.TECHNIK]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR, UserRole.TECHNICIAN]:
         raise HTTPException(
             status_code=403,
             detail="Only admins, operators, and technicians can modify tasks"

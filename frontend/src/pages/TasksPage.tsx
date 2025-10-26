@@ -1,12 +1,573 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { tasksApi, serversApi } from '../services/api';
+import { ScheduledTask, TaskStatus, TaskType, UserRole } from '../types';
+import { useAuthStore } from '../store/authStore';
+import { format } from 'date-fns';
+
 export default function TasksPage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
+  const [showModal, setShowModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    task_type: 'backup' as TaskType,
+    target_server: '',
+    scheduled_time: '',
+    is_recurring: false,
+    recurrence_pattern: '',
+  });
+
+  const { data: tasks, isLoading: tasksLoading } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: async () => {
+      const response = await tasksApi.getAll();
+      return response.data;
+    },
+  });
+
+  const { data: servers } = useQuery({
+    queryKey: ['servers'],
+    queryFn: async () => {
+      const response = await serversApi.getAll();
+      return response.data;
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: any) => tasksApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setShowModal(false);
+      resetForm();
+      alert('Task created successfully');
+    },
+    onError: (error: any) => {
+      alert(`Failed to create: ${error.response?.data?.detail || error.message}`);
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) => tasksApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setShowModal(false);
+      setEditingTask(null);
+      resetForm();
+      alert('Task updated successfully');
+    },
+    onError: (error: any) => {
+      alert(`Failed to update: ${error.response?.data?.detail || error.message}`);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => tasksApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      alert('Task deleted successfully');
+    },
+    onError: (error: any) => {
+      alert(`Failed to delete: ${error.response?.data?.detail || error.message}`);
+    },
+  });
+
+  const executeMutation = useMutation({
+    mutationFn: (id: number) => tasksApi.execute(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      alert('Task execution started');
+    },
+    onError: (error: any) => {
+      alert(`Failed to execute: ${error.response?.data?.detail || error.message}`);
+    },
+  });
+
+  const filteredTasks = tasks?.filter((task) => {
+    return statusFilter === 'all' || task.status === statusFilter;
+  });
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      task_type: 'backup' as TaskType,
+      target_server: '',
+      scheduled_time: '',
+      is_recurring: false,
+      recurrence_pattern: '',
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const submitData = {
+      ...formData,
+      scheduled_time: new Date(formData.scheduled_time).toISOString(),
+      target_server: formData.target_server || null,
+      description: formData.description || null,
+      recurrence_pattern: formData.recurrence_pattern || null,
+    };
+
+    if (editingTask) {
+      updateMutation.mutate({ id: editingTask.id, data: submitData });
+    } else {
+      createMutation.mutate(submitData);
+    }
+  };
+
+  const handleEdit = (task: ScheduledTask) => {
+    setEditingTask(task);
+    setFormData({
+      name: task.name,
+      description: task.description || '',
+      task_type: task.task_type,
+      target_server: task.target_server || '',
+      scheduled_time: format(new Date(task.scheduled_time), "yyyy-MM-dd'T'HH:mm"),
+      is_recurring: task.is_recurring,
+      recurrence_pattern: task.recurrence_pattern || '',
+    });
+    setShowModal(true);
+  };
+
+  const handleDelete = (task: ScheduledTask) => {
+    if (confirm(`Are you sure you want to delete "${task.name}"?`)) {
+      deleteMutation.mutate(task.id);
+    }
+  };
+
+  const handleExecute = (task: ScheduledTask) => {
+    if (confirm(`Execute "${task.name}" now?`)) {
+      executeMutation.mutate(task.id);
+    }
+  };
+
+  const handleAdd = () => {
+    setEditingTask(null);
+    resetForm();
+    setShowModal(true);
+  };
+
+  const canModify =
+    user?.role === UserRole.ADMIN ||
+    user?.role === UserRole.OPERATOR ||
+    user?.role === UserRole.TECHNICIAN;
+
+  if (tasksLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
+        <div style={{ fontSize: '1.25rem', color: '#64748b' }}>Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1.5rem' }}>
-        Scheduled Tasks
-      </h1>
-      <p style={{ color: '#64748b' }}>
-        Task scheduling and management interface will be implemented here...
-      </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+            Scheduled Tasks
+          </h1>
+          <p style={{ color: '#64748b' }}>Manage automated tasks and maintenance schedules</p>
+        </div>
+        {canModify && (
+          <button
+            onClick={handleAdd}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#3b82f6',
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '1rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+            }}
+          >
+            + Add Task
+          </button>
+        )}
+      </div>
+
+      <div
+        style={{
+          background: 'white',
+          padding: '1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          marginBottom: '1.5rem',
+        }}
+      >
+        <div style={{ marginBottom: '1.5rem' }}>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as TaskStatus | 'all')}
+            style={{
+              padding: '0.5rem',
+              border: '1px solid #e2e8f0',
+              borderRadius: '4px',
+              fontSize: '0.875rem',
+            }}
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Task Name</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Type</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Target</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Scheduled</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Status</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Recurring</th>
+              {canModify && (
+                <th style={{ padding: '0.75rem', textAlign: 'right', fontWeight: '600' }}>Actions</th>
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTasks?.map((task) => (
+              <tr key={task.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                <td style={{ padding: '0.75rem', fontWeight: '500' }}>{task.name}</td>
+                <td style={{ padding: '0.75rem' }}>
+                  <span
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      background: '#e0e7ff',
+                      color: '#3730a3',
+                    }}
+                  >
+                    {task.task_type}
+                  </span>
+                </td>
+                <td style={{ padding: '0.75rem', color: '#64748b' }}>{task.target_server || 'All'}</td>
+                <td style={{ padding: '0.75rem', color: '#64748b' }}>
+                  {format(new Date(task.scheduled_time), 'MMM dd, yyyy HH:mm')}
+                </td>
+                <td style={{ padding: '0.75rem' }}>
+                  <span
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      fontWeight: '600',
+                      background:
+                        task.status === 'completed'
+                          ? '#d1fae5'
+                          : task.status === 'running'
+                          ? '#dbeafe'
+                          : task.status === 'failed'
+                          ? '#fee2e2'
+                          : '#f3f4f6',
+                      color:
+                        task.status === 'completed'
+                          ? '#065f46'
+                          : task.status === 'running'
+                          ? '#1e40af'
+                          : task.status === 'failed'
+                          ? '#991b1b'
+                          : '#374151',
+                    }}
+                  >
+                    {task.status}
+                  </span>
+                </td>
+                <td style={{ padding: '0.75rem' }}>{task.is_recurring ? 'Yes' : 'No'}</td>
+                {canModify && (
+                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>
+                    {task.status === 'pending' && (
+                      <button
+                        onClick={() => handleExecute(task)}
+                        style={{
+                          padding: '0.25rem 0.75rem',
+                          background: '#10b981',
+                          color: 'white',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: '500',
+                          marginRight: '0.5rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Execute
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEdit(task)}
+                      style={{
+                        padding: '0.25rem 0.75rem',
+                        background: '#3b82f6',
+                        color: 'white',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        marginRight: '0.5rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(task)}
+                      style={{
+                        padding: '0.25rem 0.75rem',
+                        background: '#ef4444',
+                        color: 'white',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {filteredTasks?.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+            No tasks found
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+            overflowY: 'auto',
+            padding: '2rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '2rem',
+              borderRadius: '8px',
+              width: '600px',
+              maxWidth: '90%',
+            }}
+          >
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1.5rem' }}>
+              {editingTask ? 'Edit Task' : 'Add New Task'}
+            </h2>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Task Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                    Task Type *
+                  </label>
+                  <select
+                    required
+                    value={formData.task_type}
+                    onChange={(e) => setFormData({ ...formData, task_type: e.target.value as TaskType })}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    <option value="backup">Backup</option>
+                    <option value="restart">Restart</option>
+                    <option value="maintenance">Maintenance</option>
+                    <option value="diagnostic">Diagnostic</option>
+                    <option value="update">Update</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                    Target Server
+                  </label>
+                  <select
+                    value={formData.target_server}
+                    onChange={(e) => setFormData({ ...formData, target_server: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    <option value="">All Servers</option>
+                    {servers?.map((server) => (
+                      <option key={server.id} value={server.name}>
+                        {server.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                  Scheduled Time *
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={formData.scheduled_time}
+                  onChange={(e) => setFormData({ ...formData, scheduled_time: e.target.value })}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                  }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={formData.is_recurring}
+                    onChange={(e) =>
+                      setFormData({ ...formData, is_recurring: e.target.checked, recurrence_pattern: '' })
+                    }
+                    style={{ width: '1rem', height: '1rem' }}
+                  />
+                  <span style={{ fontWeight: '500' }}>Recurring Task</span>
+                </label>
+              </div>
+
+              {formData.is_recurring && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                    Recurrence Pattern
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.recurrence_pattern}
+                    onChange={(e) => setFormData({ ...formData, recurrence_pattern: e.target.value })}
+                    placeholder="e.g., daily, weekly, monthly"
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                    }}
+                  />
+                  <small style={{ color: '#64748b' }}>
+                    Describe the recurrence pattern (e.g., "daily at 2am", "every Monday")
+                  </small>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || updateMutation.isPending}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem',
+                    background: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: createMutation.isPending || updateMutation.isPending ? 'not-allowed' : 'pointer',
+                    opacity: createMutation.isPending || updateMutation.isPending ? 0.5 : 1,
+                  }}
+                >
+                  {createMutation.isPending || updateMutation.isPending
+                    ? 'Saving...'
+                    : editingTask
+                    ? 'Update'
+                    : 'Create'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingTask(null);
+                    resetForm();
+                  }}
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    background: '#64748b',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }
