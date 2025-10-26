@@ -259,6 +259,34 @@ def generate_random_events():
     return event
 
 
+@shared_task
+def cleanup_old_metrics():
+    if not SessionLocal:
+        return "Database not configured"
+
+    db = SessionLocal()
+    try:
+        sys.path.insert(0, '/backend')
+        from app.models.server_metrics_history import ServerMetricsHistory
+        from datetime import datetime, timedelta
+
+        cutoff_date = datetime.utcnow() - timedelta(days=30)
+
+        deleted_count = db.query(ServerMetricsHistory).filter(
+            ServerMetricsHistory.timestamp < cutoff_date
+        ).delete()
+
+        db.commit()
+        print(f"[WORKER] Deleted {deleted_count} old metrics (older than 30 days)")
+        return f"Deleted {deleted_count} old metrics"
+    except Exception as e:
+        print(f"[ERROR] Failed to cleanup old metrics: {e}")
+        db.rollback()
+        return f"Error: {str(e)}"
+    finally:
+        db.close()
+
+
 from celery.schedules import crontab
 from tasks.celery_app import celery_app
 
@@ -270,5 +298,9 @@ celery_app.conf.beat_schedule = {
     'check-alerts-every-60-seconds': {
         'task': 'tasks.background_jobs.check_alerts',
         'schedule': 60.0,
+    },
+    'cleanup-old-metrics-daily': {
+        'task': 'tasks.background_jobs.cleanup_old_metrics',
+        'schedule': crontab(hour=2, minute=0),
     },
 }
