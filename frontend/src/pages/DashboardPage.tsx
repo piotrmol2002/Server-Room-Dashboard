@@ -1,14 +1,21 @@
+import { useState } from 'react';
 import { useServers } from '../hooks/useServers';
 import { useEnvironment } from '../hooks/useEnvironment';
 import { useAlerts } from '../hooks/useAlerts';
 import ServerCard from '../components/ServerCard';
 import EnvironmentPanel from '../components/EnvironmentPanel';
 import AlertsList from '../components/AlertsList';
+import SimulatorPanel from '../components/SimulatorPanel';
+import ServerMetricsChart from '../components/ServerMetricsChart';
+import { Server } from '../types';
 
 export default function DashboardPage() {
   const { data: servers, isLoading: serversLoading } = useServers();
   const { data: environment, isLoading: envLoading } = useEnvironment();
   const { data: alerts, isLoading: alertsLoading } = useAlerts(true);
+  const [selectedServer, setSelectedServer] = useState<Server | null>(null);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [showChart, setShowChart] = useState(false);
 
   if (serversLoading || envLoading || alertsLoading) {
     return (
@@ -99,12 +106,77 @@ export default function DashboardPage() {
           gap: '1.5rem'
         }}>
           {servers?.map((server) => (
-            <ServerCard key={server.id} server={server} />
+            <div
+              key={server.id}
+              style={{ position: 'relative' }}
+            >
+              <ServerCard server={server} />
+              <div style={{
+                position: 'absolute',
+                bottom: '1rem',
+                right: '1rem',
+                display: 'flex',
+                gap: '0.5rem'
+              }}>
+                <button
+                  onClick={() => {
+                    setSelectedServer(server);
+                    setShowChart(true);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#3b82f6',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  Charts
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedServer(server);
+                    setShowSimulator(true);
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: '#8b5cf6',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontSize: '0.875rem',
+                    fontWeight: '500'
+                  }}
+                >
+                  Control
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       </div>
 
       {alerts && alerts.length > 0 && <AlertsList alerts={alerts} />}
+
+      {selectedServer && showSimulator && (
+        <SimulatorPanel
+          server={selectedServer}
+          onClose={() => {
+            setShowSimulator(false);
+            setSelectedServer(null);
+          }}
+        />
+      )}
+
+      {selectedServer && showChart && (
+        <ServerMetricsChart
+          server={selectedServer}
+          onClose={() => {
+            setShowChart(false);
+            setSelectedServer(null);
+          }}
+        />
+      )}
     </div>
   );
 }
