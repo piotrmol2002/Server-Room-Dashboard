@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import BaseModel
 from app.core.database import get_db
-from app.core.security import get_current_active_user
+from app.routes.auth import get_current_active_user
 from app.models import AlertThreshold, User, UserRole
 
 router = APIRouter()
