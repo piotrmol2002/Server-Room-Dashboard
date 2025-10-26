@@ -15,6 +15,7 @@ export default function Layout() {
     <div style={{ display: 'flex', minHeight: '100vh' }}>
       {/* Sidebar */}
       <aside style={{
+        position: 'relative',
         width: '250px',
         background: '#1e293b',
         color: 'white',
@@ -90,7 +91,7 @@ export default function Layout() {
           position: 'absolute',
           bottom: '1.5rem',
           left: '1.5rem',
-          right: '1.5rem'
+          width: 'calc(100% - 3rem)'
         }}>
           <div style={{
             padding: '1rem',
