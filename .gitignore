@@ -58,3 +58,7 @@ logs/
 
 # my docs
 docs/
+
+# celery
+celerybeat-schedule
+celerybeat.pid
