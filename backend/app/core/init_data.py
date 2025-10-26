@@ -1,5 +1,8 @@
 from sqlalchemy.orm import Session
-from app.models import Server, Environment, ServerStatus, User, UserRole
+from app.models import (
+    Server, Environment, ServerStatus, User, UserRole,
+    AlertThreshold, Alert, AlertLevel
+)
 from app.core.security import get_password_hash
 from app.core.database import SessionLocal
 
@@ -67,11 +70,11 @@ def init_db():
                 is_active=True
             ),
             User(
-                email="technik@serwerownia.pl",
-                username="technik",
-                full_name="Technik User",
-                hashed_password=get_password_hash("technik123"),
-                role=UserRole.TECHNIK,
+                email="technician@serwerownia.pl",
+                username="technician",
+                full_name="Technician User",
+                hashed_password=get_password_hash("technician123"),
+                role=UserRole.TECHNICIAN,
                 is_active=True
             ),
         ]
@@ -79,13 +82,54 @@ def init_db():
         for user in sample_users:
             db.add(user)
 
+        thresholds = AlertThreshold(
+            cpu_warning_threshold=85.0,
+            cpu_critical_threshold=95.0,
+            temperature_warning_threshold=70.0,
+            temperature_critical_threshold=80.0,
+            ram_warning_threshold=85.0,
+            ram_critical_threshold=95.0,
+            updated_by="system"
+        )
+        db.add(thresholds)
+
+        sample_alerts = [
+            Alert(
+                title="High Temperature Detected",
+                message="Server-11 temperature reached 77°C",
+                level=AlertLevel.WARNING,
+                source="Server-11",
+                target_role=UserRole.TECHNICIAN,
+                is_read=False
+            ),
+            Alert(
+                title="High CPU Usage",
+                message="Server-07 CPU usage at 88%",
+                level=AlertLevel.WARNING,
+                source="Server-07",
+                target_role=UserRole.OPERATOR,
+                is_read=False
+            ),
+            Alert(
+                title="System Status",
+                message="All systems operational",
+                level=AlertLevel.INFO,
+                source="System",
+                target_role=None,
+                is_read=False
+            ),
+        ]
+
+        for alert in sample_alerts:
+            db.add(alert)
+
         db.commit()
         print("Database initialized with sample data")
         print("\nDefault users created:")
         print("- admin / admin123 (Admin)")
         print("- operator / operator123 (Operator)")
         print("- monitor / monitor123 (Monitor)")
-        print("- technik / technik123 (Technik)")
+        print("- technician / technician123 (Technician)")
 
     except Exception as e:
         print(f"Error initializing database: {e}")

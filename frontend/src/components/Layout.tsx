@@ -74,19 +74,34 @@ export default function Layout() {
             </li>
 
             {user?.role === UserRole.ADMIN && (
-              <li style={{ marginBottom: '0.5rem' }}>
-                <Link
-                  to="/users"
-                  style={{
-                    display: 'block',
-                    padding: '0.75rem',
-                    borderRadius: '4px',
-                    transition: 'background 0.2s'
-                  }}
-                >
-                  Users (Admin)
-                </Link>
-              </li>
+              <>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <Link
+                    to="/users"
+                    style={{
+                      display: 'block',
+                      padding: '0.75rem',
+                      borderRadius: '4px',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    Users
+                  </Link>
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <Link
+                    to="/alert-settings"
+                    style={{
+                      display: 'block',
+                      padding: '0.75rem',
+                      borderRadius: '4px',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    Alert Settings
+                  </Link>
+                </li>
+              </>
             )}
           </ul>
         </nav>

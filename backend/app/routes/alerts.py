@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import List
 from app.core.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.alert import Alert
 from app.schemas.alert import AlertResponse, AlertCreate
 from app.routes.auth import get_current_active_user
@@ -19,8 +20,17 @@ def get_all_alerts(
     current_user: User = Depends(get_current_active_user)
 ):
     query = db.query(Alert)
+
     if unread_only:
         query = query.filter(Alert.is_read == False)
+
+    if current_user.role != UserRole.ADMIN:
+        query = query.filter(
+            or_(
+                Alert.target_role == current_user.role,
+                Alert.target_role == None
+            )
+        )
 
     alerts = query.order_by(Alert.created_at.desc()).offset(skip).limit(limit).all()
     return alerts

@@ -11,6 +11,13 @@ class AlertLevel(str, enum.Enum):
     CRITICAL = "critical"
 
 
+class UserRole(str, enum.Enum):
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    MONITOR = "monitor"
+    TECHNICIAN = "technician"
+
+
 class Alert(Base):
     __tablename__ = "alerts"
 
@@ -18,6 +25,7 @@ class Alert(Base):
     title = Column(String, nullable=False)
     message = Column(String, nullable=False)
     level = Column(Enum(AlertLevel), default=AlertLevel.INFO, nullable=False)
-    source = Column(String, nullable=True)  # server name or system component
+    source = Column(String, nullable=True)
+    target_role = Column(Enum(UserRole), nullable=True)
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

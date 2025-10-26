@@ -4,6 +4,7 @@ import type {
   Server,
   Environment,
   Alert,
+  AlertThreshold,
   ScheduledTask,
   LoginRequest,
   RegisterRequest,
@@ -65,6 +66,12 @@ export const alertsApi = {
   getById: (id: number) => api.get<Alert>(`/api/alerts/${id}`),
   markRead: (id: number) => api.patch<Alert>(`/api/alerts/${id}/read`),
   delete: (id: number) => api.delete(`/api/alerts/${id}`),
+};
+
+// Alert Thresholds API
+export const alertThresholdsApi = {
+  get: () => api.get<AlertThreshold>('/api/alerts/thresholds'),
+  update: (data: Partial<AlertThreshold>) => api.put<AlertThreshold>('/api/alerts/thresholds', data),
 };
 
 // Scheduled Tasks API

@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.models.alert import AlertLevel
+from app.models.user import UserRole
 
 
 class AlertCreate(BaseModel):
@@ -9,6 +10,7 @@ class AlertCreate(BaseModel):
     message: str
     level: AlertLevel
     source: Optional[str] = None
+    target_role: Optional[UserRole] = None
 
 
 class AlertResponse(BaseModel):
@@ -17,6 +19,7 @@ class AlertResponse(BaseModel):
     message: str
     level: AlertLevel
     source: Optional[str]
+    target_role: Optional[UserRole]
     is_read: bool
     created_at: datetime
 

@@ -8,7 +8,7 @@ class UserRole(str, enum.Enum):
     ADMIN = "admin"
     OPERATOR = "operator"
     MONITOR = "monitor"
-    TECHNIK = "technik"
+    TECHNICIAN = "technician"
 
 
 class User(Base):

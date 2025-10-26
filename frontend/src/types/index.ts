@@ -2,7 +2,7 @@ export enum UserRole {
   ADMIN = 'admin',
   OPERATOR = 'operator',
   MONITOR = 'monitor',
-  TECHNIK = 'technik',
+  TECHNICIAN = 'technician',
 }
 
 export enum ServerStatus {
@@ -76,8 +76,20 @@ export interface Alert {
   message: string;
   level: AlertLevel;
   source?: string;
+  target_role?: UserRole;
   is_read: boolean;
   created_at: string;
+}
+
+export interface AlertThreshold {
+  id: number;
+  cpu_warning_threshold: number;
+  cpu_critical_threshold: number;
+  temperature_warning_threshold: number;
+  temperature_critical_threshold: number;
+  ram_warning_threshold: number;
+  ram_critical_threshold: number;
+  updated_by?: string;
 }
 
 export interface ScheduledTask {
