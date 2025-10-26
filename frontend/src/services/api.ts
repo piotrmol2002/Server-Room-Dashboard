@@ -53,6 +53,7 @@ export const authApi = {
 export const usersApi = {
   getAll: () => api.get<User[]>('/api/users'),
   getById: (id: number) => api.get<User>(`/api/users/${id}`),
+  create: (data: any) => api.post<User>('/api/users', data),
   update: (id: number, data: Partial<User>) => api.patch<User>(`/api/users/${id}`, data),
   delete: (id: number) => api.delete(`/api/users/${id}`),
 };
