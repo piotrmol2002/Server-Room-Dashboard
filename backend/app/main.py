@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.core.init_data import init_db
-from app.routes import auth, users, servers, environment, alerts, scheduled_tasks, websocket
+from app.routes import auth, users, servers, environment, alerts, scheduled_tasks, websocket, simulator, metrics_history
 
 Base.metadata.create_all(bind=engine)
 
@@ -33,6 +33,8 @@ app.include_router(environment.router, prefix="/api/environment", tags=["Environ
 app.include_router(alerts.router, prefix="/api/alerts", tags=["Alerts"])
 app.include_router(scheduled_tasks.router, prefix="/api/tasks", tags=["Scheduled Tasks"])
 app.include_router(websocket.router, prefix="/ws", tags=["WebSocket"])
+app.include_router(simulator.router, prefix="/api/simulator", tags=["Simulator Control"])
+app.include_router(metrics_history.router, prefix="/api/metrics", tags=["Metrics History"])
 
 
 @app.get("/")
