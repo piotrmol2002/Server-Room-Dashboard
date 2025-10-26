@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.routes.auth import get_current_active_user
 from app.models import User, ServerMetricsHistory, Server
 from app.schemas.server_metrics_history import ServerMetricsHistoryResponse
 from datetime import datetime, timedelta
@@ -17,7 +17,7 @@ def get_server_metrics_history(
     hours: int = Query(default=1, ge=1, le=168),
     limit: int = Query(default=100, ge=1, le=1000),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
@@ -39,7 +39,7 @@ def get_server_metrics_history(
 def get_latest_metrics(
     server_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
@@ -60,7 +60,7 @@ def clear_server_metrics_history(
     server_id: int,
     older_than_hours: Optional[int] = Query(default=None, ge=1),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     from app.models import UserRole
 

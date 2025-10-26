@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.routes.auth import get_current_active_user
 from app.models import User, Server, UserRole
 from pydantic import BaseModel
 from typing import Optional
@@ -29,7 +29,7 @@ def control_server_power(
     server_id: int,
     request: ServerControlRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR]:
         raise HTTPException(
@@ -67,7 +67,7 @@ def set_load_baseline(
     server_id: int,
     request: LoadBaselineRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR]:
         raise HTTPException(
@@ -92,7 +92,7 @@ def trigger_stress_test(
     server_id: int,
     request: StressTestRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR]:
         raise HTTPException(
@@ -122,7 +122,7 @@ def trigger_stress_test(
 def get_server_simulation_state(
     server_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ):
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
