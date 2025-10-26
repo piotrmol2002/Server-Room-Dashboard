@@ -63,6 +63,7 @@ services:
       - backend
     volumes:
       - ./worker:/app
+      - ./backend:/backend:ro
     networks:
       - serwerownia_network
     command: celery -A tasks.celery_app worker --loglevel=info
@@ -83,6 +84,7 @@ services:
       - worker
     volumes:
       - ./worker:/app
+      - ./backend:/backend:ro
     networks:
       - serwerownia_network
     command: celery -A tasks.celery_app beat --loglevel=info

@@ -23,10 +23,9 @@ def simulate_server_metrics():
 
     db = SessionLocal()
     try:
-        from sqlalchemy import text
-        sys.path.insert(0, '/app/app')
-        from models.server import Server, ServerStatus
-        from models.server_metrics_history import ServerMetricsHistory
+        sys.path.insert(0, '/backend')
+        from app.models.server import Server, ServerStatus
+        from app.models.server_metrics_history import ServerMetricsHistory
 
         servers = db.query(Server).all()
 
