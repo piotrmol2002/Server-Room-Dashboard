@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useServers } from '../hooks/useServers';
 import { useEnvironment } from '../hooks/useEnvironment';
 import { useAlerts } from '../hooks/useAlerts';
@@ -17,6 +17,21 @@ export default function DashboardPage() {
   const [showSimulator, setShowSimulator] = useState(false);
   const [showChart, setShowChart] = useState(false);
 
+  const onlineServers = useMemo(() =>
+    servers?.filter(s => s.status === 'online').length || 0,
+    [servers]
+  );
+
+  const totalServers = useMemo(() =>
+    servers?.length || 0,
+    [servers]
+  );
+
+  const activeAlerts = useMemo(() =>
+    alerts?.filter(a => !a.is_read).length || 0,
+    [alerts]
+  );
+
   if (serversLoading || envLoading || alertsLoading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
@@ -24,10 +39,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const onlineServers = servers?.filter(s => s.status === 'online').length || 0;
-  const totalServers = servers?.length || 0;
-  const activeAlerts = alerts?.filter(a => !a.is_read).length || 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
