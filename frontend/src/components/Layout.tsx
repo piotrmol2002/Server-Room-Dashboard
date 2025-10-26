@@ -12,14 +12,18 @@ export default function Layout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div>
       {/* Sidebar */}
       <aside style={{
-        position: 'relative',
+        position: 'fixed',
+        top: 0,
+        left: 0,
         width: '250px',
+        height: '100vh',
         background: '#1e293b',
         color: 'white',
-        padding: '1.5rem'
+        padding: '1.5rem',
+        overflowY: 'auto'
       }}>
         <h2 style={{ marginBottom: '2rem', fontSize: '1.5rem' }}>
           Serwerownia
@@ -125,7 +129,9 @@ export default function Layout() {
 
       {/* Main content */}
       <main style={{
-        flex: 1,
+        marginLeft: '250px',
+        height: '100vh',
+        overflowY: 'auto',
         padding: '2rem',
         background: '#f8fafc'
       }}>
