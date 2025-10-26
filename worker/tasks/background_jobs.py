@@ -5,14 +5,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import time
 import sys
+import redis
+import json
 sys.path.append('/app')
 
 from simulator.engine import SimulationEngine
 
 DATABASE_URL = os.getenv('DATABASE_URL')
+REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
+
 engine = create_engine(DATABASE_URL) if DATABASE_URL else None
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) if engine else None
 
+redis_client = redis.from_url(REDIS_URL, decode_responses=True)
 simulation_engine = SimulationEngine()
 
 
@@ -63,6 +68,27 @@ def simulate_server_metrics():
             metrics_updated += 1
 
         db.commit()
+
+        servers_data = []
+        for server in servers:
+            servers_data.append({
+                'id': server.id,
+                'name': server.name,
+                'status': server.status.value,
+                'cpu_usage': server.cpu_usage,
+                'ram_usage': server.ram_usage,
+                'temperature': server.temperature,
+                'uptime': server.uptime
+            })
+
+        try:
+            redis_client.publish('metrics_update', json.dumps({
+                'servers': servers_data,
+                'timestamp': time.time()
+            }))
+        except Exception as redis_error:
+            print(f"[WARN] Failed to publish to Redis: {redis_error}")
+
         print(f"[WORKER] Updated metrics for {metrics_updated} servers")
         return f"Updated {metrics_updated} servers"
     except Exception as e:
