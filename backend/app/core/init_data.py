@@ -24,15 +24,19 @@ def init_db():
         )
         db.add(env)
 
-        servers = [
-            Server(name=f"Server-{i:02d}", ip_address=f"192.168.1.{100+i}",
-                   status=ServerStatus.ONLINE if i % 4 != 0 else ServerStatus.OFFLINE,
-                   cpu_usage=30.0 + (i * 5), ram_usage=40.0 + (i * 3),
-                   temperature=35.0 + (i * 2), uptime=86400 * i)
-            for i in range(1, 13)
-        ]
-
-        for server in servers:
+        servers = []
+        for i in range(1, 13):
+            is_online = i % 4 != 0
+            server = Server(
+                name=f"Server-{i:02d}",
+                ip_address=f"192.168.1.{100+i}",
+                status=ServerStatus.ONLINE if is_online else ServerStatus.OFFLINE,
+                cpu_usage=30.0 + (i * 5) if is_online else 0.0,
+                ram_usage=40.0 + (i * 3) if is_online else 0.0,
+                temperature=35.0 + (i * 2) if is_online else 22.0,
+                uptime=86400 * i if is_online else 0
+            )
+            servers.append(server)
             db.add(server)
 
         admin_user = User(
