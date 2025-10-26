@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useServers } from '../hooks/useServers';
 import { useEnvironment } from '../hooks/useEnvironment';
 import { useAlerts } from '../hooks/useAlerts';
+import { useWebSocket } from '../hooks/useWebSocket';
 import ServerCard from '../components/ServerCard';
 import EnvironmentPanel from '../components/EnvironmentPanel';
 import AlertsList from '../components/AlertsList';
@@ -10,7 +11,10 @@ import ServerMetricsChart from '../components/ServerMetricsChart';
 import { Server } from '../types';
 
 export default function DashboardPage() {
-  const { data: servers, isLoading: serversLoading } = useServers();
+  const { isConnected } = useWebSocket();
+  const { data: servers, isLoading: serversLoading } = useServers({
+    refetchInterval: isConnected ? false : 30000,
+  });
   const { data: environment, isLoading: envLoading } = useEnvironment();
   const { data: alerts, isLoading: alertsLoading } = useAlerts(true);
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
@@ -43,12 +47,28 @@ export default function DashboardPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div>
-        <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
-          Server Room Dashboard
-        </h1>
-        <p style={{ color: '#64748b' }}>
-          Real-time monitoring and management
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '0.5rem' }}>
+              Server Room Dashboard
+            </h1>
+            <p style={{ color: '#64748b' }}>
+              Real-time monitoring and management
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              background: isConnected ? '#10b981' : '#6b7280',
+              animation: isConnected ? 'pulse 2s ease-in-out infinite' : 'none'
+            }} />
+            <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+              {isConnected ? 'Live' : 'Polling'}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>

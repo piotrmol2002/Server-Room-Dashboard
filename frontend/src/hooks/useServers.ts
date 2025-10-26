@@ -1,15 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { serversApi } from '../services/api';
 
-export function useServers() {
+interface UseServersOptions {
+  enabled?: boolean;
+  refetchInterval?: number | false;
+}
+
+export function useServers(options: UseServersOptions = {}) {
+  const { enabled = true, refetchInterval = 30000 } = options;
+
   return useQuery({
     queryKey: ['servers'],
     queryFn: async () => {
       const response = await serversApi.getAll();
       return response.data;
     },
-    refetchInterval: 15000,
+    enabled,
+    refetchInterval,
     refetchOnWindowFocus: false,
-    staleTime: 14000,
+    staleTime: 25000,
   });
 }
