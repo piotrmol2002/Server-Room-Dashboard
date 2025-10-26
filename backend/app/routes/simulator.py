@@ -4,8 +4,6 @@ from app.core.database import get_db
 from app.routes.auth import get_current_active_user
 from app.models import User, Server, UserRole
 from pydantic import BaseModel
-from typing import Optional
-import httpx
 
 router = APIRouter()
 
