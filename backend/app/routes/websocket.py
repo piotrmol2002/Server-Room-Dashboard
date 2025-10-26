@@ -63,17 +63,24 @@ async def websocket_endpoint(
     websocket: WebSocket,
     token: str = Query(...)
 ):
-    payload = decode_access_token(token)
-    if payload is None:
-        await websocket.close(code=1008)
-        return
-
-    await manager.connect(websocket)
-
     try:
-        while True:
-            data = await websocket.receive_text()
-            await websocket.send_text(f"Message received: {data}")
+        payload = decode_access_token(token)
+        if payload is None:
+            await websocket.close(code=1008, reason="Invalid or expired token")
+            return
 
-    except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        await manager.connect(websocket)
+
+        try:
+            while True:
+                data = await websocket.receive_text()
+
+        except WebSocketDisconnect:
+            manager.disconnect(websocket)
+
+    except Exception as e:
+        print(f"[WebSocket] Error: {e}")
+        try:
+            await websocket.close(code=1011, reason="Internal server error")
+        except:
+            pass
