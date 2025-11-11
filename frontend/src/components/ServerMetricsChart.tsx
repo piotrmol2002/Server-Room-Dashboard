@@ -46,9 +46,9 @@ export default function ServerMetricsChart({ server, onClose }: ServerMetricsCha
       const response = await metricsHistoryApi.getHistory(server.id, timeRange, 500);
       const metrics = response.data.reverse().map((item: any) => ({
         timestamp: formatInTimeZone(new Date(item.timestamp), 'Europe/Warsaw', 'HH:mm:ss'),
-        cpu_usage: item.cpu_usage,
-        ram_usage: item.ram_usage,
-        temperature: item.temperature,
+        cpu_usage: parseFloat(item.cpu_usage.toFixed(2)),
+        ram_usage: parseFloat(item.ram_usage.toFixed(2)),
+        temperature: parseFloat(item.temperature.toFixed(2)),
       }));
       setData(metrics);
     } catch (error) {

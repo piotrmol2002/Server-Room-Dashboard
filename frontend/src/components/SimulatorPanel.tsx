@@ -1,31 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Server } from '../types';
 import { simulatorApi } from '../api/simulator';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 interface SimulatorPanelProps {
   server: Server;
   onClose: () => void;
 }
 
-export default function SimulatorPanel({ server, onClose }: SimulatorPanelProps) {
+export default function SimulatorPanel({ server: initialServer, onClose }: SimulatorPanelProps) {
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPowerChanging, setIsPowerChanging] = useState(false);
   const [cpuBaseline, setCpuBaseline] = useState(50);
   const [ramBaseline, setRamBaseline] = useState(50);
   const [stressDuration, setStressDuration] = useState(60);
   const [stressIntensity, setStressIntensity] = useState(1.0);
 
+  const { data: servers } = useQuery<Server[]>({
+    queryKey: ['servers'],
+    refetchInterval: 5000
+  });
+
+  const server = servers?.find(s => s.id === initialServer.id) || initialServer;
+
   const handlePowerToggle = async () => {
-    setIsLoading(true);
+    setIsPowerChanging(true);
     try {
       await simulatorApi.controlPower(server.id, server.status !== 'online');
       await queryClient.invalidateQueries({ queryKey: ['servers'] });
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await queryClient.refetchQueries({ queryKey: ['servers'] });
     } catch (error) {
       console.error('Failed to toggle power:', error);
       alert('Failed to toggle server power');
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsPowerChanging(false), 1000);
     }
   };
 
@@ -109,7 +119,7 @@ export default function SimulatorPanel({ server, onClose }: SimulatorPanelProps)
             <h3 style={{ fontWeight: '600', marginBottom: '1rem' }}>Power Control</h3>
             <button
               onClick={handlePowerToggle}
-              disabled={isLoading}
+              disabled={isPowerChanging}
               style={{
                 width: '100%',
                 padding: '0.75rem',
@@ -117,10 +127,11 @@ export default function SimulatorPanel({ server, onClose }: SimulatorPanelProps)
                 color: 'white',
                 borderRadius: '4px',
                 fontWeight: '500',
-                opacity: isLoading ? 0.6 : 1
+                opacity: isPowerChanging ? 0.6 : 1,
+                cursor: isPowerChanging ? 'not-allowed' : 'pointer'
               }}
             >
-              {server.status === 'online' ? 'Turn OFF' : 'Turn ON'}
+              {isPowerChanging ? 'Processing...' : (server.status === 'online' ? 'Turn OFF' : 'Turn ON')}
             </button>
           </div>
 

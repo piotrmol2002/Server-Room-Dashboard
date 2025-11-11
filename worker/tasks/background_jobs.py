@@ -37,8 +37,9 @@ def simulate_server_metrics():
 
         metrics_updated = 0
         for server in servers:
+            is_online = server.status == ServerStatus.ONLINE
+
             if server.id not in simulation_engine.server_states:
-                is_online = server.status == ServerStatus.ONLINE
                 simulation_engine.register_server(
                     server_id=server.id,
                     is_online=is_online,
@@ -47,6 +48,8 @@ def simulate_server_metrics():
                     current_temp=server.temperature,
                     uptime=server.uptime if is_online else 0
                 )
+            else:
+                simulation_engine.set_server_status(server.id, is_online)
 
             snapshot = simulation_engine.simulate_tick(server.id, interval_seconds=10)
 
@@ -293,9 +296,9 @@ from celery.schedules import crontab
 from tasks.celery_app import celery_app
 
 celery_app.conf.beat_schedule = {
-    'simulate-metrics-every-60-seconds': {
+    'simulate-metrics-every-30-seconds': {
         'task': 'tasks.background_jobs.simulate_server_metrics',
-        'schedule': 60.0,
+        'schedule': 30.0,
     },
     'check-alerts-every-60-seconds': {
         'task': 'tasks.background_jobs.check_alerts',

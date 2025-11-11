@@ -110,9 +110,14 @@ class SimulationEngine:
     def set_server_status(self, server_id: int, online: bool):
         if server_id in self.server_states:
             state = self.server_states[server_id]
+            was_offline = not state.is_online
             state.is_online = online
 
-            if not online:
+            if online and was_offline:
+                state.cpu_baseline = 25.0 + random.uniform(0, 20)
+                state.ram_baseline = 35.0 + random.uniform(0, 15)
+                state.uptime_seconds = 0
+            elif not online:
                 state.uptime_seconds = 0
 
     def trigger_event(self, event: SimulationEvent):
