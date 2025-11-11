@@ -293,9 +293,9 @@ from celery.schedules import crontab
 from tasks.celery_app import celery_app
 
 celery_app.conf.beat_schedule = {
-    'simulate-metrics-every-30-seconds': {
+    'simulate-metrics-every-60-seconds': {
         'task': 'tasks.background_jobs.simulate_server_metrics',
-        'schedule': 30.0,
+        'schedule': 60.0,
     },
     'check-alerts-every-60-seconds': {
         'task': 'tasks.background_jobs.check_alerts',

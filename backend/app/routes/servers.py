@@ -24,7 +24,7 @@ def get_all_servers(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    servers = db.query(Server).all()
+    servers = db.query(Server).order_by(Server.id).all()
     return servers
 
 
