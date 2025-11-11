@@ -10,6 +10,7 @@ import json
 sys.path.append('/app')
 
 from simulator.engine import SimulationEngine
+from core.timezone import now_warsaw
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 REDIS_URL = os.getenv('REDIS_URL', 'redis://redis:6379')
@@ -216,9 +217,9 @@ def check_alerts():
 
 def _alert_exists(db, source: str, title: str, minutes: int = 5):
     from app.models.alert import Alert
-    from datetime import datetime, timedelta
+    from datetime import timedelta
 
-    cutoff = datetime.utcnow() - timedelta(minutes=minutes)
+    cutoff = now_warsaw() - timedelta(minutes=minutes)
     existing = db.query(Alert).filter(
         Alert.source == source,
         Alert.title == title,
@@ -268,9 +269,9 @@ def cleanup_old_metrics():
     try:
         sys.path.insert(0, '/backend')
         from app.models.server_metrics_history import ServerMetricsHistory
-        from datetime import datetime, timedelta
+        from datetime import timedelta
 
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
+        cutoff_date = now_warsaw() - timedelta(days=30)
 
         deleted_count = db.query(ServerMetricsHistory).filter(
             ServerMetricsHistory.timestamp < cutoff_date

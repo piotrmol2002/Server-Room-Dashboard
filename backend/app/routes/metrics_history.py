@@ -5,7 +5,8 @@ from app.core.database import get_db
 from app.routes.auth import get_current_active_user
 from app.models import User, ServerMetricsHistory, Server
 from app.schemas.server_metrics_history import ServerMetricsHistoryResponse
-from datetime import datetime, timedelta
+from app.core.timezone import now_warsaw
+from datetime import timedelta
 from typing import List, Optional
 
 router = APIRouter()
@@ -23,7 +24,7 @@ def get_server_metrics_history(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    time_threshold = datetime.utcnow() - timedelta(hours=hours)
+    time_threshold = now_warsaw() - timedelta(hours=hours)
 
     history = db.query(ServerMetricsHistory).filter(
         and_(
@@ -72,7 +73,7 @@ def clear_server_metrics_history(
         raise HTTPException(status_code=404, detail="Server not found")
 
     if older_than_hours:
-        time_threshold = datetime.utcnow() - timedelta(hours=older_than_hours)
+        time_threshold = now_warsaw() - timedelta(hours=older_than_hours)
         deleted_count = db.query(ServerMetricsHistory).filter(
             and_(
                 ServerMetricsHistory.server_id == server_id,

@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Dict, List, Optional
 from .models import ServerState, MetricsSnapshot, SimulationEvent
 from .physics import ThermalModel, LoadSimulator
+from core.timezone import now_warsaw
 import random
 
 
@@ -26,7 +27,7 @@ class SimulationEngine:
             ram_current=current_ram,
             temperature_current=current_temp,
             uptime_seconds=uptime,
-            last_update=datetime.utcnow()
+            last_update=now_warsaw()
         )
 
         if is_online:
@@ -41,7 +42,7 @@ class SimulationEngine:
             raise ValueError(f"Server {server_id} not registered")
 
         state = self.server_states[server_id]
-        now = datetime.utcnow()
+        now = now_warsaw()
         time_delta = (now - state.last_update).total_seconds()
 
         self._process_pending_events(server_id, now)
@@ -130,7 +131,7 @@ class SimulationEngine:
             params={
                 'duration': duration_seconds,
                 'intensity': intensity,
-                'end_time': datetime.utcnow() + timedelta(seconds=duration_seconds)
+                'end_time': now_warsaw() + timedelta(seconds=duration_seconds)
             }
         )
         self.trigger_event(event)
