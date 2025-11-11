@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.routes.auth import get_current_active_user
-from app.models import User, Server, UserRole
+from app.models import User, Server, UserRole, StressTestLog
+from app.core.timezone import now_warsaw
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -108,8 +109,35 @@ def trigger_stress_test(
             detail="Cannot stress test offline server"
         )
 
+    active_test = db.query(StressTestLog).filter(
+        StressTestLog.server_id == server_id,
+        StressTestLog.status == "running"
+    ).first()
+
+    if active_test:
+        raise HTTPException(
+            status_code=400,
+            detail="Stress test already running on this server"
+        )
+
+    stress_log = StressTestLog(
+        server_id=server_id,
+        started_at=now_warsaw(),
+        duration_seconds=request.duration_seconds,
+        intensity=request.intensity,
+        started_by_user_id=current_user.id,
+        started_by_email=current_user.email,
+        status="running",
+        baseline_cpu_before=server.cpu_usage,
+        baseline_ram_before=server.ram_usage
+    )
+    db.add(stress_log)
+    db.commit()
+    db.refresh(stress_log)
+
     return {
         "message": f"Stress test initiated for {server.name}",
+        "test_id": stress_log.id,
         "duration_seconds": request.duration_seconds,
         "intensity": request.intensity,
         "note": "Worker will execute stress test on next simulation tick"
@@ -126,6 +154,11 @@ def get_server_simulation_state(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
+    active_stress_test = db.query(StressTestLog).filter(
+        StressTestLog.server_id == server_id,
+        StressTestLog.status == "running"
+    ).first()
+
     return {
         "server_id": server.id,
         "name": server.name,
@@ -135,5 +168,47 @@ def get_server_simulation_state(
             "ram_usage": server.ram_usage,
             "temperature": server.temperature,
             "uptime": server.uptime
-        }
+        },
+        "active_stress_test": {
+            "test_id": active_stress_test.id,
+            "started_at": active_stress_test.started_at.isoformat(),
+            "duration_seconds": active_stress_test.duration_seconds,
+            "intensity": active_stress_test.intensity,
+            "started_by": active_stress_test.started_by_email
+        } if active_stress_test else None
+    }
+
+
+@router.get("/servers/{server_id}/stress-tests")
+def get_stress_test_history(
+    server_id: int,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    server = db.query(Server).filter(Server.id == server_id).first()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    tests = db.query(StressTestLog).filter(
+        StressTestLog.server_id == server_id
+    ).order_by(StressTestLog.started_at.desc()).limit(limit).all()
+
+    return {
+        "server_id": server_id,
+        "tests": [
+            {
+                "id": t.id,
+                "started_at": t.started_at.isoformat(),
+                "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+                "duration_seconds": t.duration_seconds,
+                "intensity": t.intensity,
+                "status": t.status,
+                "started_by": t.started_by_email,
+                "max_cpu": t.max_cpu_reached,
+                "max_ram": t.max_ram_reached,
+                "max_temp": t.max_temp_reached
+            }
+            for t in tests
+        ]
     }

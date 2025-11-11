@@ -32,8 +32,37 @@ def simulate_server_metrics():
         sys.path.insert(0, '/backend')
         from app.models.server import Server, ServerStatus
         from app.models.server_metrics_history import ServerMetricsHistory
+        from app.models.stress_test_log import StressTestLog
 
         servers = db.query(Server).order_by(Server.id).all()
+
+        running_tests = db.query(StressTestLog).filter(
+            StressTestLog.status == "running"
+        ).all()
+
+        for test in running_tests:
+            elapsed = (now_warsaw() - test.started_at).total_seconds()
+
+            if elapsed >= test.duration_seconds:
+                test.status = "completed"
+                test.completed_at = now_warsaw()
+
+                if test.server_id in simulation_engine.server_states:
+                    state = simulation_engine.server_states[test.server_id]
+                    test.max_cpu_reached = state.cpu_current
+                    test.max_ram_reached = state.ram_current
+                    test.max_temp_reached = state.temperature_current
+
+                db.commit()
+                print(f"[STRESS TEST] Completed test {test.id} for server {test.server_id}")
+            else:
+                if test.server_id not in [e.server_id for e in simulation_engine.pending_events if e.event_type == 'stress_test']:
+                    simulation_engine.trigger_stress_test(
+                        test.server_id,
+                        test.duration_seconds,
+                        test.intensity
+                    )
+                    print(f"[STRESS TEST] Activated test {test.id} for server {test.server_id}")
 
         metrics_updated = 0
         for server in servers:
