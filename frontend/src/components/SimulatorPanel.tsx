@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Server } from '../types';
 import { simulatorApi } from '../api/simulator';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { useServers } from '../hooks/useServers';
 
 interface SimulatorPanelProps {
   server: Server;
@@ -17,10 +18,7 @@ export default function SimulatorPanel({ server: initialServer, onClose }: Simul
   const [stressDuration, setStressDuration] = useState(60);
   const [stressIntensity, setStressIntensity] = useState(1.0);
 
-  const { data: servers } = useQuery<Server[]>({
-    queryKey: ['servers'],
-    refetchInterval: 5000
-  });
+  const { data: servers } = useServers({ refetchInterval: 5000 });
 
   const server = servers?.find(s => s.id === initialServer.id) || initialServer;
 
