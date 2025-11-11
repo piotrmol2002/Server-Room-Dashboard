@@ -58,6 +58,7 @@ def simulate_server_metrics():
 
             history = ServerMetricsHistory(
                 server_id=server.id,
+                timestamp=now_warsaw(),
                 cpu_usage=snapshot.cpu_usage,
                 ram_usage=snapshot.ram_usage,
                 temperature=snapshot.temperature,
