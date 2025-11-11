@@ -26,13 +26,13 @@ class AlertThresholdResponse(BaseModel):
     temperature_critical_threshold: float
     ram_warning_threshold: float
     ram_critical_threshold: float
-    updated_by: Optional[str]
+    updated_by: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 
-@router.get("/thresholds", response_model=AlertThresholdResponse)
+@router.get("/thresholds")
 def get_alert_thresholds(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -45,7 +45,16 @@ def get_alert_thresholds(
         db.commit()
         db.refresh(thresholds)
 
-    return thresholds
+    return {
+        "id": thresholds.id,
+        "cpu_warning_threshold": thresholds.cpu_warning_threshold,
+        "cpu_critical_threshold": thresholds.cpu_critical_threshold,
+        "temperature_warning_threshold": thresholds.temperature_warning_threshold,
+        "temperature_critical_threshold": thresholds.temperature_critical_threshold,
+        "ram_warning_threshold": thresholds.ram_warning_threshold,
+        "ram_critical_threshold": thresholds.ram_critical_threshold,
+        "updated_by": thresholds.updated_by
+    }
 
 
 @router.put("/thresholds", response_model=AlertThresholdResponse)

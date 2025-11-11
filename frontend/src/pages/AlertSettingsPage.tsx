@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { alertThresholdsApi } from '../services/api';
 import { AlertThreshold } from '../types';
@@ -14,12 +14,46 @@ export default function AlertSettingsPage() {
     },
   });
 
-  const [formData, setFormData] = useState<Partial<AlertThreshold>>({});
+  const [formData, setFormData] = useState<AlertThreshold | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
+  useEffect(() => {
+    if (thresholds && !formData) {
+      setFormData(thresholds);
+    }
+  }, [thresholds]);
+
+  useEffect(() => {
+    if (!thresholds || !formData) return;
+
+    const changed =
+      formData.cpu_warning_threshold !== thresholds.cpu_warning_threshold ||
+      formData.cpu_critical_threshold !== thresholds.cpu_critical_threshold ||
+      formData.temperature_warning_threshold !== thresholds.temperature_warning_threshold ||
+      formData.temperature_critical_threshold !== thresholds.temperature_critical_threshold ||
+      formData.ram_warning_threshold !== thresholds.ram_warning_threshold ||
+      formData.ram_critical_threshold !== thresholds.ram_critical_threshold;
+
+    setHasChanges(changed);
+  }, [formData, thresholds]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasChanges]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<AlertThreshold>) => alertThresholdsApi.update(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['alert-thresholds'] });
+      setHasChanges(false);
       alert('Alert thresholds updated successfully');
     },
     onError: (error: any) => {
@@ -29,12 +63,15 @@ export default function AlertSettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    updateMutation.mutate(formData);
+    if (formData) {
+      updateMutation.mutate(formData);
+    }
   };
 
   const handleReset = () => {
     if (thresholds) {
       setFormData({
+        ...thresholds,
         cpu_warning_threshold: 85,
         cpu_critical_threshold: 95,
         temperature_warning_threshold: 70,
@@ -45,15 +82,13 @@ export default function AlertSettingsPage() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !formData) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
         <div style={{ fontSize: '1.25rem', color: '#64748b' }}>Loading...</div>
       </div>
     );
   }
-
-  const currentThresholds = { ...thresholds, ...formData };
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -85,7 +120,7 @@ export default function AlertSettingsPage() {
               min="0"
               max="100"
               step="0.1"
-              value={currentThresholds.cpu_warning_threshold}
+              value={formData.cpu_warning_threshold}
               onChange={(e) => setFormData({ ...formData, cpu_warning_threshold: parseFloat(e.target.value) })}
               style={{
                 width: '100%',
@@ -109,7 +144,7 @@ export default function AlertSettingsPage() {
               min="0"
               max="100"
               step="0.1"
-              value={currentThresholds.cpu_critical_threshold}
+              value={formData.cpu_critical_threshold}
               onChange={(e) => setFormData({ ...formData, cpu_critical_threshold: parseFloat(e.target.value) })}
               style={{
                 width: '100%',
@@ -145,7 +180,7 @@ export default function AlertSettingsPage() {
               min="0"
               max="150"
               step="0.1"
-              value={currentThresholds.temperature_warning_threshold}
+              value={formData.temperature_warning_threshold}
               onChange={(e) => setFormData({ ...formData, temperature_warning_threshold: parseFloat(e.target.value) })}
               style={{
                 width: '100%',
@@ -169,7 +204,7 @@ export default function AlertSettingsPage() {
               min="0"
               max="150"
               step="0.1"
-              value={currentThresholds.temperature_critical_threshold}
+              value={formData.temperature_critical_threshold}
               onChange={(e) => setFormData({ ...formData, temperature_critical_threshold: parseFloat(e.target.value) })}
               style={{
                 width: '100%',
@@ -205,7 +240,7 @@ export default function AlertSettingsPage() {
               min="0"
               max="100"
               step="0.1"
-              value={currentThresholds.ram_warning_threshold}
+              value={formData.ram_warning_threshold}
               onChange={(e) => setFormData({ ...formData, ram_warning_threshold: parseFloat(e.target.value) })}
               style={{
                 width: '100%',
@@ -229,7 +264,7 @@ export default function AlertSettingsPage() {
               min="0"
               max="100"
               step="0.1"
-              value={currentThresholds.ram_critical_threshold}
+              value={formData.ram_critical_threshold}
               onChange={(e) => setFormData({ ...formData, ram_critical_threshold: parseFloat(e.target.value) })}
               style={{
                 width: '100%',
@@ -261,7 +296,7 @@ export default function AlertSettingsPage() {
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button
             type="submit"
-            disabled={updateMutation.isPending}
+            disabled={updateMutation.isPending || !hasChanges}
             style={{
               flex: 1,
               padding: '0.75rem',
@@ -270,8 +305,8 @@ export default function AlertSettingsPage() {
               borderRadius: '4px',
               fontSize: '1rem',
               fontWeight: '500',
-              cursor: updateMutation.isPending ? 'not-allowed' : 'pointer',
-              opacity: updateMutation.isPending ? 0.5 : 1
+              cursor: (updateMutation.isPending || !hasChanges) ? 'not-allowed' : 'pointer',
+              opacity: (updateMutation.isPending || !hasChanges) ? 0.5 : 1
             }}
           >
             {updateMutation.isPending ? 'Saving...' : 'Save Changes'}
