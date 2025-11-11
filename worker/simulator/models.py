@@ -20,8 +20,8 @@ class ServerState:
     temperature_idle: float = 22.0
     temperature_max: float = 75.0
 
-    cooling_rate: float = 0.3
-    heating_rate: float = 0.5
+    cooling_rate: float = 0.05
+    heating_rate: float = 0.15
 
     uptime_seconds: int = 0
     last_update: datetime = field(default_factory=datetime.utcnow)
