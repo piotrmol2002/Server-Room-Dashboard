@@ -33,7 +33,7 @@ def simulate_server_metrics():
         from app.models.server import Server, ServerStatus
         from app.models.server_metrics_history import ServerMetricsHistory
 
-        servers = db.query(Server).all()
+        servers = db.query(Server).order_by(Server.id).all()
 
         metrics_updated = 0
         for server in servers:
