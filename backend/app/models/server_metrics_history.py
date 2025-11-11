@@ -7,7 +7,7 @@ class ServerMetricsHistory(Base):
     __tablename__ = "server_metrics_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    server_id = Column(Integer, ForeignKey("servers.id"), nullable=False, index=True)
+    server_id = Column(Integer, ForeignKey("servers.id", ondelete="CASCADE"), nullable=False, index=True)
     timestamp = Column(DateTime, nullable=False, default=func.now(), index=True)
 
     cpu_usage = Column(Float, nullable=False, default=0.0)
