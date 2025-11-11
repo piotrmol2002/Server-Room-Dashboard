@@ -187,7 +187,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {alerts && alerts.length > 0 && <AlertsList alerts={alerts} />}
+      {alerts && <AlertsList alerts={alerts} />}
 
       {selectedServer && showSimulator && (
         <SimulatorPanel
