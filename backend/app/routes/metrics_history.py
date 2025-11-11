@@ -15,7 +15,7 @@ router = APIRouter()
 @router.get("/servers/{server_id}/history", response_model=List[ServerMetricsHistoryResponse])
 def get_server_metrics_history(
     server_id: int,
-    hours: int = Query(default=1, ge=1, le=168),
+    hours: float = Query(default=1, ge=0.1, le=168),
     limit: int = Query(default=100, ge=1, le=1000),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
