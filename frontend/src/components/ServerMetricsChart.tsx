@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Server } from '../types';
 import { metricsHistoryApi } from '../api/simulator';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface ServerMetricsChartProps {
   server: Server;
@@ -45,7 +45,7 @@ export default function ServerMetricsChart({ server, onClose }: ServerMetricsCha
     try {
       const response = await metricsHistoryApi.getHistory(server.id, timeRange, 500);
       const metrics = response.data.reverse().map((item: any) => ({
-        timestamp: format(new Date(item.timestamp), 'HH:mm:ss'),
+        timestamp: formatInTimeZone(new Date(item.timestamp), 'Europe/Warsaw', 'HH:mm:ss'),
         cpu_usage: item.cpu_usage,
         ram_usage: item.ram_usage,
         temperature: item.temperature,
