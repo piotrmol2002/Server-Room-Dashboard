@@ -5,8 +5,10 @@ from typing import List
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.alert import Alert
+from app.models.alert_deletion import AlertDeletion
 from app.schemas.alert import AlertResponse, AlertCreate
 from app.routes.auth import get_current_active_user
+from app.core.timezone import now_warsaw
 
 router = APIRouter()
 
@@ -73,6 +75,18 @@ def delete_alert(
     alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
+
+    deletion_record = AlertDeletion(
+        alert_id=alert.id,
+        deleted_by_user_id=current_user.id,
+        deleted_by_email=current_user.email,
+        deleted_at=now_warsaw(),
+        alert_title=alert.title,
+        alert_message=alert.message,
+        alert_level=alert.level.value,
+        alert_source=alert.source
+    )
+    db.add(deletion_record)
 
     db.delete(alert)
     db.commit()

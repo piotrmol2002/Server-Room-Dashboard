@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { Alert, AlertLevel } from '../types';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { alertsApi } from '../services/api';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AlertsListProps {
   alerts: Alert[];
@@ -21,6 +23,22 @@ const levelLabels = {
 };
 
 function AlertsList({ alerts }: AlertsListProps) {
+  const queryClient = useQueryClient();
+
+  const handleDelete = async (alertId: number) => {
+    if (!confirm('Are you sure you want to delete this alert?')) {
+      return;
+    }
+
+    try {
+      await alertsApi.delete(alertId);
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    } catch (error) {
+      console.error('Failed to delete alert:', error);
+      alert('Failed to delete alert');
+    }
+  };
+
   if (alerts.length === 0) {
     return (
       <div
@@ -107,9 +125,25 @@ function AlertsList({ alerts }: AlertsListProps) {
                   {alert.message}
                 </p>
               </div>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', marginLeft: '1rem' }}>
-                {format(new Date(alert.created_at), 'HH:mm')}
-              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                  {formatInTimeZone(new Date(alert.created_at), 'Europe/Warsaw', 'yyyy-MM-dd HH:mm:ss')}
+                </span>
+                <button
+                  onClick={() => handleDelete(alert.id)}
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    background: '#ef4444',
+                    color: 'white',
+                    borderRadius: '4px',
+                    fontWeight: '500',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ))}
