@@ -130,19 +130,35 @@ class SimulationEngine:
             state.ram_baseline = max(0.0, min(100.0, ram_baseline))
 
     def trigger_stress_test(self, server_id: int, duration_seconds: int, intensity: float = 1.0):
+        start_time = now_warsaw()
+        warmup_duration = int(duration_seconds * 0.15)
+        cooldown_duration = int(duration_seconds * 0.15)
+        plateau_duration = duration_seconds - warmup_duration - cooldown_duration
+
+        print(f"[STRESS TEST] Starting stress test for server {server_id}: duration={duration_seconds}s, intensity={intensity}, warmup={warmup_duration}s, plateau={plateau_duration}s, cooldown={cooldown_duration}s")
+
         event = SimulationEvent(
             event_type='stress_test',
             server_id=server_id,
             params={
                 'duration': duration_seconds,
                 'intensity': intensity,
-                'end_time': now_warsaw() + timedelta(seconds=duration_seconds)
+                'start_time': start_time,
+                'end_time': start_time + timedelta(seconds=duration_seconds),
+                'warmup_end': start_time + timedelta(seconds=warmup_duration),
+                'plateau_end': start_time + timedelta(seconds=warmup_duration + plateau_duration),
+                'baseline_cpu': self.server_states[server_id].cpu_baseline if server_id in self.server_states else 30.0,
+                'baseline_ram': self.server_states[server_id].ram_baseline if server_id in self.server_states else 40.0
             }
         )
         self.trigger_event(event)
+        print(f"[STRESS TEST] Event triggered, total pending events: {len(self.pending_events)}")
 
     def _process_pending_events(self, server_id: int, current_time: datetime):
         active_events = [e for e in self.pending_events if e.server_id == server_id]
+
+        if active_events:
+            print(f"[STRESS TEST] Processing {len(active_events)} events for server {server_id}")
 
         for event in active_events:
             if event.event_type == 'stress_test':
@@ -150,11 +166,36 @@ class SimulationEngine:
                 if current_time < end_time:
                     state = self.server_states[server_id]
                     intensity = event.params.get('intensity', 1.0)
-                    state.cpu_current = LoadSimulator.apply_stress_test(
-                        state.cpu_baseline,
-                        intensity
-                    )
-                    state.ram_current = min(95.0, state.ram_baseline + 40 * intensity)
+                    start_time = event.params.get('start_time')
+                    warmup_end = event.params.get('warmup_end')
+                    plateau_end = event.params.get('plateau_end')
+                    baseline_cpu = event.params.get('baseline_cpu', 30.0)
+                    baseline_ram = event.params.get('baseline_ram', 40.0)
+
+                    target_cpu = min(95.0, baseline_cpu + (intensity * 60))
+                    target_ram = min(90.0, baseline_ram + (intensity * 35))
+
+                    if current_time < warmup_end:
+                        elapsed = (current_time - start_time).total_seconds()
+                        warmup_duration = (warmup_end - start_time).total_seconds()
+                        progress = elapsed / warmup_duration if warmup_duration > 0 else 1.0
+
+                        state.cpu_current = baseline_cpu + (target_cpu - baseline_cpu) * progress
+                        state.ram_current = baseline_ram + (target_ram - baseline_ram) * progress
+
+                    elif current_time < plateau_end:
+                        noise_cpu = random.uniform(-3, 3)
+                        noise_ram = random.uniform(-2, 2)
+                        state.cpu_current = min(100.0, max(0.0, target_cpu + noise_cpu))
+                        state.ram_current = min(100.0, max(0.0, target_ram + noise_ram))
+
+                    else:
+                        elapsed = (current_time - plateau_end).total_seconds()
+                        cooldown_duration = (end_time - plateau_end).total_seconds()
+                        progress = elapsed / cooldown_duration if cooldown_duration > 0 else 1.0
+
+                        state.cpu_current = target_cpu - (target_cpu - baseline_cpu) * progress
+                        state.ram_current = target_ram - (target_ram - baseline_ram) * progress
                 else:
                     self.pending_events.remove(event)
 
