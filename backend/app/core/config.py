@@ -1,5 +1,8 @@
 from pydantic_settings import BaseSettings
 from typing import Optional
+import os
+
+os.environ['TZ'] = 'Europe/Warsaw'
 
 
 class Settings(BaseSettings):
@@ -9,6 +12,7 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     BACKEND_CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000"]
+    TIMEZONE: str = "Europe/Warsaw"
 
     class Config:
         env_file = ".env"
