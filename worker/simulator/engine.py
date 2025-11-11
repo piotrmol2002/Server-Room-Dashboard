@@ -45,8 +45,6 @@ class SimulationEngine:
         now = now_warsaw()
         time_delta = (now - state.last_update).total_seconds()
 
-        self._process_pending_events(server_id, now)
-
         if state.is_online:
             state.cpu_current = LoadSimulator.generate_realistic_cpu(
                 state.cpu_baseline,
@@ -59,6 +57,10 @@ class SimulationEngine:
                 state.ram_variance,
                 state.cpu_current
             )
+
+        self._process_pending_events(server_id, now)
+
+        if state.is_online:
 
             target_temp = ThermalModel.calculate_target_temperature(
                 state.cpu_current,
