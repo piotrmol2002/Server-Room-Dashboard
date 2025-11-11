@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.routes.auth import get_current_active_user
-from app.models import User, Server, UserRole, StressTestLog
+from app.models import User, Server, UserRole, StressTestLog, ServerBaseline
 from app.core.timezone import now_warsaw
 from pydantic import BaseModel
 
@@ -78,11 +78,29 @@ def set_load_baseline(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
+    baseline = db.query(ServerBaseline).filter(ServerBaseline.server_id == server_id).first()
+    if not baseline:
+        baseline = ServerBaseline(
+            server_id=server_id,
+            cpu_baseline=request.cpu_baseline,
+            ram_baseline=request.ram_baseline,
+            updated_by_user_id=current_user.id,
+            updated_by_email=current_user.email
+        )
+        db.add(baseline)
+    else:
+        baseline.cpu_baseline = request.cpu_baseline
+        baseline.ram_baseline = request.ram_baseline
+        baseline.updated_by_user_id = current_user.id
+        baseline.updated_by_email = current_user.email
+
+    db.commit()
+    db.refresh(baseline)
+
     return {
         "message": f"Load baseline set for {server.name}",
         "cpu_baseline": request.cpu_baseline,
-        "ram_baseline": request.ram_baseline,
-        "note": "Worker will apply this on next simulation tick"
+        "ram_baseline": request.ram_baseline
     }
 
 
@@ -159,6 +177,8 @@ def get_server_simulation_state(
         StressTestLog.status == "running"
     ).first()
 
+    baseline = db.query(ServerBaseline).filter(ServerBaseline.server_id == server_id).first()
+
     return {
         "server_id": server.id,
         "name": server.name,
@@ -169,6 +189,10 @@ def get_server_simulation_state(
             "temperature": server.temperature,
             "uptime": server.uptime
         },
+        "baseline": {
+            "cpu_baseline": baseline.cpu_baseline,
+            "ram_baseline": baseline.ram_baseline
+        } if baseline else None,
         "active_stress_test": {
             "test_id": active_stress_test.id,
             "started_at": active_stress_test.started_at.isoformat(),

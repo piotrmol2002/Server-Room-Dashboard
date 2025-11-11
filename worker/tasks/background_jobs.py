@@ -33,8 +33,10 @@ def simulate_server_metrics():
         from app.models.server import Server, ServerStatus
         from app.models.server_metrics_history import ServerMetricsHistory
         from app.models.stress_test_log import StressTestLog
+        from app.models.server_baseline import ServerBaseline
 
         servers = db.query(Server).order_by(Server.id).all()
+        baselines = {b.server_id: b for b in db.query(ServerBaseline).all()}
 
         running_tests = db.query(StressTestLog).filter(
             StressTestLog.status == "running"
@@ -79,6 +81,10 @@ def simulate_server_metrics():
                 )
             else:
                 simulation_engine.set_server_status(server.id, is_online)
+
+            if server.id in baselines:
+                baseline = baselines[server.id]
+                simulation_engine.set_load_baseline(server.id, baseline.cpu_baseline, baseline.ram_baseline)
 
             snapshot = simulation_engine.simulate_tick(server.id, interval_seconds=10)
 

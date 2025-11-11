@@ -7,6 +7,7 @@ from .alert_deletion import AlertDeletion
 from .scheduled_task import ScheduledTask, TaskType, TaskStatus
 from .server_metrics_history import ServerMetricsHistory
 from .stress_test_log import StressTestLog
+from .server_baseline import ServerBaseline
 
 __all__ = [
     "User",
@@ -23,4 +24,5 @@ __all__ = [
     "TaskStatus",
     "ServerMetricsHistory",
     "StressTestLog",
+    "ServerBaseline",
 ]
