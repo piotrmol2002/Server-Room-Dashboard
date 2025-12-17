@@ -73,6 +73,20 @@ export default function Layout() {
               </Link>
             </li>
 
+            <li style={{ marginBottom: '0.5rem' }}>
+              <Link
+                to="/alerts"
+                style={{
+                  display: 'block',
+                  padding: '0.75rem',
+                  borderRadius: '4px',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Alerts
+              </Link>
+            </li>
+
             {user?.role === UserRole.ADMIN && (
               <>
                 <li style={{ marginBottom: '0.5rem' }}>
