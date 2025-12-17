@@ -285,6 +285,7 @@ export default function TasksPage() {
           <thead>
             <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Task Name</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600', maxWidth: '200px' }}>Description</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Type</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Assigned To</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Target</th>
@@ -300,6 +301,7 @@ export default function TasksPage() {
             {filteredTasks?.map((task) => (
               <tr key={task.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <td style={{ padding: '0.75rem', fontWeight: '500' }}>{task.name}</td>
+                <td style={{ padding: '0.75rem', color: '#64748b', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={task.description || ''}>{task.description || '-'}</td>
                 <td style={{ padding: '0.75rem' }}>
                   <span
                     style={{
