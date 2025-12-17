@@ -15,7 +15,9 @@ export default function DashboardPage() {
   const { data: servers, isLoading: serversLoading } = useServers({
     refetchInterval: isConnected ? false : 30000,
   });
-  const { data: environment, isLoading: envLoading } = useEnvironment();
+  const { data: environment, isLoading: envLoading } = useEnvironment({
+    refetchInterval: isConnected ? false : 15000,
+  });
   const { data: alerts, isLoading: alertsLoading } = useAlerts(true);
   const [selectedServer, setSelectedServer] = useState<Server | null>(null);
   const [showSimulator, setShowSimulator] = useState(false);

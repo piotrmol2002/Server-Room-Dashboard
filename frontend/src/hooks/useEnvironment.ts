@@ -1,14 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { environmentApi } from '../services/api';
 
-export function useEnvironment() {
+interface UseEnvironmentOptions {
+  refetchInterval?: number | false;
+}
+
+export function useEnvironment(options: UseEnvironmentOptions = {}) {
+  const { refetchInterval = 15000 } = options;
+
   return useQuery({
     queryKey: ['environment'],
     queryFn: async () => {
       const response = await environmentApi.get();
       return response.data;
     },
-    refetchInterval: 15000,
+    refetchInterval,
     refetchOnWindowFocus: false,
     staleTime: 14000,
   });

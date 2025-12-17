@@ -171,9 +171,23 @@ def simulate_server_metrics():
                 'uptime': server.uptime
             })
 
+        environment_data = None
+        if environment:
+            environment_data = {
+                'id': environment.id,
+                'room_temperature': environment.room_temperature,
+                'humidity': environment.humidity,
+                'power_consumption': environment.power_consumption,
+                'ac_status': environment.ac_status,
+                'ac_target_temp': environment.ac_target_temp,
+                'ups_battery': environment.ups_battery,
+                'ups_on_battery': environment.ups_on_battery
+            }
+
         try:
             redis_client.publish('metrics_update', json.dumps({
                 'servers': servers_data,
+                'environment': environment_data,
                 'timestamp': time.time()
             }))
         except Exception as redis_error:

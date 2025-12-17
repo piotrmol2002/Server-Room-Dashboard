@@ -51,6 +51,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
 
           if (message.type === 'metrics_update' && message.data) {
             queryClient.setQueryData(['servers'], message.data.servers);
+            if (message.data.environment) {
+              queryClient.setQueryData(['environment'], message.data.environment);
+            }
           }
 
           if (onMessage) {
