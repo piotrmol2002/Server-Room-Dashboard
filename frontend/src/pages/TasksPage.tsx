@@ -31,7 +31,7 @@ export default function TasksPage() {
     target_server: '',
     scheduled_time: '',
     is_recurring: false,
-    recurrence_pattern: '',
+    recurrence_days: 1,
     assigned_role: '' as UserRole | '',
   });
 
@@ -133,7 +133,7 @@ export default function TasksPage() {
       target_server: '',
       scheduled_time: '',
       is_recurring: false,
-      recurrence_pattern: '',
+      recurrence_days: 1,
       assigned_role: '',
     });
   };
@@ -145,7 +145,7 @@ export default function TasksPage() {
       scheduled_time: new Date(formData.scheduled_time).toISOString(),
       target_server: formData.target_server || null,
       description: formData.description || null,
-      recurrence_pattern: formData.recurrence_pattern || null,
+      recurrence_days: formData.is_recurring ? formData.recurrence_days : null,
       assigned_role: formData.assigned_role || null,
     };
 
@@ -165,7 +165,7 @@ export default function TasksPage() {
       target_server: task.target_server || '',
       scheduled_time: format(new Date(task.scheduled_time), "yyyy-MM-dd'T'HH:mm"),
       is_recurring: task.is_recurring,
-      recurrence_pattern: task.recurrence_pattern || '',
+      recurrence_days: task.recurrence_days || 1,
       assigned_role: task.assigned_role || '',
     });
     setShowModal(true);
@@ -367,7 +367,13 @@ export default function TasksPage() {
                 <td style={{ padding: '0.75rem' }}>
                   {task.is_recurring ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span>Yes</span>
+                      <span style={{ fontSize: '0.75rem' }}>
+                        {task.recurrence_days === 1 ? 'Daily' :
+                         task.recurrence_days === 7 ? 'Weekly' :
+                         task.recurrence_days === 14 ? 'Bi-weekly' :
+                         task.recurrence_days === 30 ? 'Monthly' :
+                         `Every ${task.recurrence_days} days`}
+                      </span>
                       <button
                         onClick={() => handleShowHistory(task)}
                         style={{
@@ -627,7 +633,7 @@ export default function TasksPage() {
                     type="checkbox"
                     checked={formData.is_recurring}
                     onChange={(e) =>
-                      setFormData({ ...formData, is_recurring: e.target.checked, recurrence_pattern: '' })
+                      setFormData({ ...formData, is_recurring: e.target.checked, recurrence_days: 1 })
                     }
                     style={{ width: '1rem', height: '1rem' }}
                   />
@@ -638,13 +644,11 @@ export default function TasksPage() {
               {formData.is_recurring && (
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
-                    Recurrence Pattern
+                    Repeat Every
                   </label>
-                  <input
-                    type="text"
-                    value={formData.recurrence_pattern}
-                    onChange={(e) => setFormData({ ...formData, recurrence_pattern: e.target.value })}
-                    placeholder="e.g., daily, weekly, monthly"
+                  <select
+                    value={formData.recurrence_days}
+                    onChange={(e) => setFormData({ ...formData, recurrence_days: parseInt(e.target.value) })}
                     style={{
                       width: '100%',
                       padding: '0.5rem',
@@ -652,9 +656,14 @@ export default function TasksPage() {
                       borderRadius: '4px',
                       fontSize: '1rem',
                     }}
-                  />
+                  >
+                    <option value={1}>Daily (every day)</option>
+                    <option value={7}>Weekly (every 7 days)</option>
+                    <option value={14}>Bi-weekly (every 14 days)</option>
+                    <option value={30}>Monthly (every 30 days)</option>
+                  </select>
                   <small style={{ color: '#64748b' }}>
-                    Describe the recurrence pattern (e.g., "daily at 2am", "every Monday")
+                    First occurrence: {formData.scheduled_time ? format(new Date(formData.scheduled_time), 'MMM dd, yyyy HH:mm') : 'select scheduled time'}
                   </small>
                 </div>
               )}

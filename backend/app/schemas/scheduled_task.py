@@ -13,6 +13,7 @@ class ScheduledTaskCreate(BaseModel):
     scheduled_time: datetime
     is_recurring: bool = False
     recurrence_pattern: Optional[str] = None
+    recurrence_days: Optional[int] = None
     assigned_role: Optional[UserRole] = None
 
 
@@ -23,6 +24,7 @@ class ScheduledTaskUpdate(BaseModel):
     scheduled_time: Optional[datetime] = None
     is_recurring: Optional[bool] = None
     recurrence_pattern: Optional[str] = None
+    recurrence_days: Optional[int] = None
     assigned_role: Optional[UserRole] = None
 
 
@@ -38,6 +40,7 @@ class ScheduledTaskResponse(BaseModel):
     completed_at: Optional[datetime]
     is_recurring: bool
     recurrence_pattern: Optional[str]
+    recurrence_days: Optional[int]
     assigned_role: Optional[UserRole]
     created_by: Optional[int]
     completed_by_email: Optional[str]

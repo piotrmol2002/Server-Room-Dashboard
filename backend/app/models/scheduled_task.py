@@ -34,7 +34,8 @@ class ScheduledTask(Base):
     executed_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
     is_recurring = Column(Boolean, default=False)
-    recurrence_pattern = Column(String, nullable=True)  # e.g., "daily", "weekly", "monthly"
+    recurrence_pattern = Column(String, nullable=True)  # legacy field
+    recurrence_days = Column(Integer, nullable=True)  # number of days between recurrences (1=daily, 7=weekly, 30=monthly)
     assigned_role = Column(Enum(UserRole), nullable=True)  # operator or technician
     created_by = Column(Integer, nullable=True)  # user_id
     completed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)

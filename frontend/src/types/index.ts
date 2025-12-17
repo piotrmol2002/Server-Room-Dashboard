@@ -122,6 +122,7 @@ export interface ScheduledTask {
   completed_at?: string;
   is_recurring: boolean;
   recurrence_pattern?: string;
+  recurrence_days?: number;
   assigned_role?: UserRole;
   created_by?: number;
   completed_by_email?: string;
