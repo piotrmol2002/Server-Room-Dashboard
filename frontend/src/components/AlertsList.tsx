@@ -1,6 +1,7 @@
 import { memo } from 'react';
+import { useAuthStore } from '../store/authStore';
 import { useNavigate } from 'react-router-dom';
-import { Alert, AlertLevel } from '../types';
+import { Alert, AlertLevel, UserRole } from '../types';
 import { formatInTimeZone } from 'date-fns-tz';
 import { alertsApi } from '../services/api';
 import { useQueryClient } from '@tanstack/react-query';
@@ -25,7 +26,18 @@ const levelLabels = {
 
 function AlertsList({ alerts }: AlertsListProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  const handleMarkRead = async (alertId: number) => {
+    try {
+      await alertsApi.markRead(alertId);
+      queryClient.invalidateQueries({ queryKey: ['alerts'] });
+    } catch (error) {
+      console.error('Failed to mark alert as read:', error);
+      alert('Failed to mark alert as read');
+    }
+  };
 
   const handleDelete = async (alertId: number) => {
     if (!confirm('Are you sure you want to delete this alert?')) {
@@ -131,20 +143,40 @@ function AlertsList({ alerts }: AlertsListProps) {
                 <span style={{ fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap' }}>
                   {formatInTimeZone(new Date(alert.created_at), 'Europe/Warsaw', 'yyyy-MM-dd HH:mm:ss')}
                 </span>
-                <button
-                  onClick={() => handleDelete(alert.id)}
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.75rem',
-                    background: '#ef4444',
-                    color: 'white',
-                    borderRadius: '4px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Delete
-                </button>
+                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                  {!alert.is_read && (
+                    <button
+                      onClick={() => handleMarkRead(alert.id)}
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.75rem',
+                        background: '#10b981',
+                        color: 'white',
+                        borderRadius: '4px',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Mark Read
+                    </button>
+                  )}
+                  {user?.role === UserRole.ADMIN && (
+                    <button
+                      onClick={() => handleDelete(alert.id)}
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        fontSize: '0.75rem',
+                        background: '#ef4444',
+                        color: 'white',
+                        borderRadius: '4px',
+                        fontWeight: '500',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
