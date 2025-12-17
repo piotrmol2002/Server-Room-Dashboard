@@ -12,7 +12,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
-    role: UserRole = UserRole.MONITOR
+    role: UserRole = UserRole.OPERATOR
 
 
 class UserUpdate(BaseModel):

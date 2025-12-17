@@ -62,14 +62,6 @@ def init_db():
                 is_active=True
             ),
             User(
-                email="monitor@serwerownia.pl",
-                username="monitor",
-                full_name="Monitor User",
-                hashed_password=get_password_hash("monitor123"),
-                role=UserRole.MONITOR,
-                is_active=True
-            ),
-            User(
                 email="technician@serwerownia.pl",
                 username="technician",
                 full_name="Technician User",
@@ -128,7 +120,6 @@ def init_db():
         print("\nDefault users created:")
         print("- admin / admin123 (Admin)")
         print("- operator / operator123 (Operator)")
-        print("- monitor / monitor123 (Monitor)")
         print("- technician / technician123 (Technician)")
 
     except Exception as e:
