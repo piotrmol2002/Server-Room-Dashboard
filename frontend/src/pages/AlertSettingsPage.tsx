@@ -11,6 +11,8 @@ const levelColors: Record<string, string> = {
   [AlertLevel.CRITICAL]: '#dc2626',
 };
 
+const LOGS_PER_PAGE = 10;
+
 export default function AlertSettingsPage() {
   const queryClient = useQueryClient();
 
@@ -32,6 +34,7 @@ export default function AlertSettingsPage() {
 
   const [formData, setFormData] = useState<AlertThreshold | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [logsPage, setLogsPage] = useState(1);
 
   useEffect(() => {
     if (thresholds && !formData) {
@@ -422,28 +425,27 @@ export default function AlertSettingsPage() {
         </h2>
 
         {alertLogs && alertLogs.length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          <>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem', tableLayout: 'fixed' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Alert</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Level</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Source</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Created</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Read By</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Read At</th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left' }}>Deleted By</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', width: '25%' }}>Alert</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', width: '10%' }}>Level</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', width: '15%' }}>Created</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', width: '20%' }}>Read By</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', width: '15%' }}>Read At</th>
+                  <th style={{ padding: '0.5rem', textAlign: 'left', width: '15%' }}>Deleted By</th>
                 </tr>
               </thead>
               <tbody>
-                {alertLogs.slice(0, 20).map((log: AlertLog) => (
+                {alertLogs.slice((logsPage - 1) * LOGS_PER_PAGE, logsPage * LOGS_PER_PAGE).map((log: AlertLog) => (
                   <tr key={`${log.id}-${log.deleted_at || ''}`} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '0.75rem' }}>{log.title}</td>
-                    <td style={{ padding: '0.75rem' }}>
+                    <td style={{ padding: '0.5rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.title}>{log.title}</td>
+                    <td style={{ padding: '0.5rem' }}>
                       <span style={{
-                        padding: '0.125rem 0.5rem',
+                        padding: '0.125rem 0.375rem',
                         borderRadius: '4px',
-                        fontSize: '0.75rem',
+                        fontSize: '0.7rem',
                         fontWeight: '600',
                         background: levelColors[log.level] || '#64748b',
                         color: 'white'
@@ -451,15 +453,14 @@ export default function AlertSettingsPage() {
                         {log.level}
                       </span>
                     </td>
-                    <td style={{ padding: '0.75rem', color: '#64748b' }}>{log.source || '-'}</td>
-                    <td style={{ padding: '0.75rem', color: '#64748b' }}>
-                      {formatInTimeZone(new Date(log.created_at), 'Europe/Warsaw', 'yyyy-MM-dd HH:mm')}
+                    <td style={{ padding: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
+                      {formatInTimeZone(new Date(log.created_at), 'Europe/Warsaw', 'MM-dd HH:mm')}
                     </td>
-                    <td style={{ padding: '0.75rem', color: '#64748b' }}>{log.read_by_email || '-'}</td>
-                    <td style={{ padding: '0.75rem', color: '#64748b' }}>
-                      {log.read_at ? formatInTimeZone(new Date(log.read_at), 'Europe/Warsaw', 'yyyy-MM-dd HH:mm') : '-'}
+                    <td style={{ padding: '0.5rem', color: '#64748b', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.read_by_email || '-'}>{log.read_by_email || '-'}</td>
+                    <td style={{ padding: '0.5rem', color: '#64748b', fontSize: '0.8rem' }}>
+                      {log.read_at ? formatInTimeZone(new Date(log.read_at), 'Europe/Warsaw', 'MM-dd HH:mm') : '-'}
                     </td>
-                    <td style={{ padding: '0.75rem' }}>
+                    <td style={{ padding: '0.5rem', fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={log.deleted_by_email || '-'}>
                       {log.deleted_by_email ? (
                         <span style={{ color: '#ef4444' }}>{log.deleted_by_email}</span>
                       ) : '-'}
@@ -468,7 +469,45 @@ export default function AlertSettingsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+
+            {alertLogs.length > LOGS_PER_PAGE && (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #e2e8f0' }}>
+                <button
+                  onClick={() => setLogsPage(p => Math.max(1, p - 1))}
+                  disabled={logsPage === 1}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: logsPage === 1 ? '#e2e8f0' : '#3b82f6',
+                    color: logsPage === 1 ? '#94a3b8' : 'white',
+                    borderRadius: '4px',
+                    cursor: logsPage === 1 ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Previous
+                </button>
+                <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
+                  Page {logsPage} of {Math.ceil(alertLogs.length / LOGS_PER_PAGE)}
+                </span>
+                <button
+                  onClick={() => setLogsPage(p => Math.min(Math.ceil(alertLogs.length / LOGS_PER_PAGE), p + 1))}
+                  disabled={logsPage >= Math.ceil(alertLogs.length / LOGS_PER_PAGE)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: logsPage >= Math.ceil(alertLogs.length / LOGS_PER_PAGE) ? '#e2e8f0' : '#3b82f6',
+                    color: logsPage >= Math.ceil(alertLogs.length / LOGS_PER_PAGE) ? '#94a3b8' : 'white',
+                    borderRadius: '4px',
+                    cursor: logsPage >= Math.ceil(alertLogs.length / LOGS_PER_PAGE) ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem' }}>
             No alert logs available
