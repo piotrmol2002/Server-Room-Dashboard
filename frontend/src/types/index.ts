@@ -32,6 +32,7 @@ export enum TaskStatus {
   COMPLETED = 'completed',
   FAILED = 'failed',
   CANCELLED = 'cancelled',
+  OVERDUE = 'overdue',
 }
 
 export interface User {

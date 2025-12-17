@@ -278,6 +278,7 @@ export default function TasksPage() {
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="overdue">Overdue</option>
           </select>
         </div>
 
@@ -345,22 +346,8 @@ export default function TasksPage() {
                       borderRadius: '4px',
                       fontSize: '0.75rem',
                       fontWeight: '600',
-                      background:
-                        task.status === 'completed'
-                          ? '#d1fae5'
-                          : task.status === 'running'
-                          ? '#dbeafe'
-                          : task.status === 'failed'
-                          ? '#fee2e2'
-                          : '#f3f4f6',
-                      color:
-                        task.status === 'completed'
-                          ? '#065f46'
-                          : task.status === 'running'
-                          ? '#1e40af'
-                          : task.status === 'failed'
-                          ? '#991b1b'
-                          : '#374151',
+                      background: task.status === 'completed' ? '#d1fae5' : task.status === 'running' ? '#dbeafe' : task.status === 'failed' ? '#fee2e2' : task.status === 'overdue' ? '#fef3c7' : '#f3f4f6',
+                      color: task.status === 'completed' ? '#065f46' : task.status === 'running' ? '#1e40af' : task.status === 'failed' ? '#991b1b' : task.status === 'overdue' ? '#92400e' : '#374151',
                     }}
                   >
                     {task.status}

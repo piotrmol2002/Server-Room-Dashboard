@@ -372,6 +372,52 @@ def cleanup_old_metrics():
         db.close()
 
 
+
+
+@shared_task
+def check_recurring_tasks():
+    if not SessionLocal:
+        return "Database not configured"
+
+    db = SessionLocal()
+    try:
+        sys.path.insert(0, '/backend')
+        from app.models.scheduled_task import ScheduledTask, TaskStatus
+        from datetime import timedelta
+
+        now = now_warsaw()
+        tasks_updated = 0
+
+        recurring_tasks = db.query(ScheduledTask).filter(
+            ScheduledTask.is_recurring == True,
+            ScheduledTask.recurrence_days.isnot(None)
+        ).all()
+
+        for task in recurring_tasks:
+            if task.scheduled_time <= now:
+                if task.status == TaskStatus.COMPLETED:
+                    task.status = TaskStatus.PENDING
+                    task.completed_at = None
+                    task.completed_by_user_id = None
+                    task.completed_by_email = None
+                    task.completion_comment = None
+                    tasks_updated += 1
+                    print(f"[WORKER] Reset recurring task {task.id} to pending (new period)")
+                elif task.status == TaskStatus.PENDING:
+                    task.status = TaskStatus.OVERDUE
+                    tasks_updated += 1
+                    print(f"[WORKER] Marked task {task.id} as overdue")
+
+        db.commit()
+        print(f"[WORKER] Updated {tasks_updated} recurring tasks")
+        return f"Updated {tasks_updated} recurring tasks"
+    except Exception as e:
+        print(f"[ERROR] Failed to check recurring tasks: {e}")
+        db.rollback()
+        return f"Error: {str(e)}"
+    finally:
+        db.close()
+
 from celery.schedules import crontab
 from tasks.celery_app import celery_app
 

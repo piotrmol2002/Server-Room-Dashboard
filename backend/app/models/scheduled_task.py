@@ -19,6 +19,7 @@ class TaskStatus(str, enum.Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
+    OVERDUE = "overdue"
 
 
 class ScheduledTask(Base):

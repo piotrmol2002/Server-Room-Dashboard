@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import date
+from datetime import date, timedelta
 from app.core.database import get_db
 from app.core.timezone import now_warsaw
 from app.models.user import User, UserRole
@@ -184,6 +184,12 @@ def complete_task(
             scheduled_date=today
         )
         db.add(completion_record)
+        
+        task.status = TaskStatus.COMPLETED
+        task.completed_at = now_warsaw()
+        
+        if task.recurrence_days:
+            task.scheduled_time = task.scheduled_time + timedelta(days=task.recurrence_days)
     else:
         task.status = TaskStatus.COMPLETED
         task.completed_at = now_warsaw()
