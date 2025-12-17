@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Server } from '../types';
+import { Server, UserRole } from '../types';
 import { simulatorApi } from '../api/simulator';
 import { useQueryClient } from '@tanstack/react-query';
 import { useServers } from '../hooks/useServers';
+import { useAuthStore } from '../store/authStore';
 
 interface SimulatorPanelProps {
   server: Server;
@@ -19,6 +20,7 @@ interface ActiveStressTest {
 
 export default function SimulatorPanel({ server: initialServer, onClose }: SimulatorPanelProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isPowerChanging, setIsPowerChanging] = useState(false);
   const [cpuBaseline, setCpuBaseline] = useState(50);
@@ -170,22 +172,28 @@ export default function SimulatorPanel({ server: initialServer, onClose }: Simul
             border: '1px solid #e2e8f0'
           }}>
             <h3 style={{ fontWeight: '600', marginBottom: '1rem' }}>Power Control</h3>
-            <button
-              onClick={handlePowerToggle}
-              disabled={isPowerChanging}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: server.status === 'online' ? '#ef4444' : '#10b981',
-                color: 'white',
-                borderRadius: '4px',
-                fontWeight: '500',
-                opacity: isPowerChanging ? 0.6 : 1,
-                cursor: isPowerChanging ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {isPowerChanging ? 'Processing...' : (server.status === 'online' ? 'Turn OFF' : 'Turn ON')}
-            </button>
+            {(() => {
+              const canControl = user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR;
+              return (
+                <button
+                  onClick={handlePowerToggle}
+                  disabled={isPowerChanging || !canControl}
+                  title={!canControl ? 'Only Admin and Operator can control server power' : undefined}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: !canControl ? '#d1d5db' : (server.status === 'online' ? '#ef4444' : '#10b981'),
+                    color: !canControl ? '#6b7280' : 'white',
+                    borderRadius: '4px',
+                    fontWeight: '500',
+                    opacity: isPowerChanging ? 0.6 : 1,
+                    cursor: (isPowerChanging || !canControl) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!canControl ? 'No Permission' : (isPowerChanging ? 'Processing...' : (server.status === 'online' ? 'Turn OFF' : 'Turn ON'))}
+                </button>
+              );
+            })()}
           </div>
 
           <div style={{
@@ -224,21 +232,28 @@ export default function SimulatorPanel({ server: initialServer, onClose }: Simul
               />
             </div>
 
-            <button
-              onClick={handleSetBaseline}
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: '#3b82f6',
-                color: 'white',
-                borderRadius: '4px',
-                fontWeight: '500',
-                opacity: isLoading ? 0.6 : 1
-              }}
-            >
-              Apply Baseline
-            </button>
+            {(() => {
+              const canControl = user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR;
+              return (
+                <button
+                  onClick={handleSetBaseline}
+                  disabled={isLoading || !canControl}
+                  title={!canControl ? 'Only Admin and Operator can set baseline' : undefined}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: !canControl ? '#d1d5db' : '#3b82f6',
+                    color: !canControl ? '#6b7280' : 'white',
+                    borderRadius: '4px',
+                    fontWeight: '500',
+                    opacity: isLoading ? 0.6 : 1,
+                    cursor: (!canControl || isLoading) ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!canControl ? 'No Permission' : 'Apply Baseline'}
+                </button>
+              );
+            })()}
           </div>
 
           <div style={{
@@ -279,25 +294,35 @@ export default function SimulatorPanel({ server: initialServer, onClose }: Simul
               />
             </div>
 
-            <button
-              onClick={handleStressTest}
-              disabled={isLoading || server.status !== 'online' || activeStressTest !== null}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: activeStressTest ? '#9ca3af' : (server.status === 'online' ? '#f59e0b' : '#9ca3af'),
-                color: 'white',
-                borderRadius: '4px',
-                fontWeight: '500',
-                opacity: (isLoading || activeStressTest) ? 0.6 : 1,
-                cursor: (isLoading || server.status !== 'online' || activeStressTest) ? 'not-allowed' : 'pointer'
-              }}
-            >
-              {activeStressTest
-                ? `Running... ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`
-                : (server.status === 'online' ? 'Run Stress Test' : 'Server Offline')
-              }
-            </button>
+            {(() => {
+              const canStressTest = user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR;
+              const isDisabled = isLoading || server.status !== 'online' || activeStressTest !== null || !canStressTest;
+
+              return (
+                <button
+                  onClick={handleStressTest}
+                  disabled={isDisabled}
+                  title={!canStressTest ? 'Only Admin and Operator can run stress tests' : undefined}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: !canStressTest ? '#d1d5db' : (activeStressTest ? '#9ca3af' : (server.status === 'online' ? '#f59e0b' : '#9ca3af')),
+                    color: !canStressTest ? '#6b7280' : 'white',
+                    borderRadius: '4px',
+                    fontWeight: '500',
+                    opacity: (isLoading || activeStressTest) ? 0.6 : 1,
+                    cursor: isDisabled ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {!canStressTest
+                    ? 'No Permission'
+                    : activeStressTest
+                      ? `Running... ${Math.floor(remainingSeconds / 60)}:${String(remainingSeconds % 60).padStart(2, '0')}`
+                      : (server.status === 'online' ? 'Run Stress Test' : 'Server Offline')
+                  }
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>
