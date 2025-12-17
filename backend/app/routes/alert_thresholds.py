@@ -16,6 +16,8 @@ class AlertThresholdUpdate(BaseModel):
     temperature_critical_threshold: Optional[float] = None
     ram_warning_threshold: Optional[float] = None
     ram_critical_threshold: Optional[float] = None
+    humidity_warning_threshold: Optional[float] = None
+    humidity_critical_threshold: Optional[float] = None
 
 
 class AlertThresholdResponse(BaseModel):
@@ -26,6 +28,8 @@ class AlertThresholdResponse(BaseModel):
     temperature_critical_threshold: float
     ram_warning_threshold: float
     ram_critical_threshold: float
+    humidity_warning_threshold: float
+    humidity_critical_threshold: float
     updated_by: Optional[str] = None
 
     class Config:
@@ -53,6 +57,8 @@ def get_alert_thresholds(
         "temperature_critical_threshold": thresholds.temperature_critical_threshold,
         "ram_warning_threshold": thresholds.ram_warning_threshold,
         "ram_critical_threshold": thresholds.ram_critical_threshold,
+        "humidity_warning_threshold": thresholds.humidity_warning_threshold,
+        "humidity_critical_threshold": thresholds.humidity_critical_threshold,
         "updated_by": thresholds.updated_by
     }
 

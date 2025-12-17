@@ -1,7 +1,6 @@
 export enum UserRole {
   ADMIN = 'admin',
   OPERATOR = 'operator',
-  MONITOR = 'monitor',
   TECHNICIAN = 'technician',
 }
 
@@ -78,7 +77,24 @@ export interface Alert {
   source?: string;
   target_role?: UserRole;
   is_read: boolean;
+  read_at?: string;
+  read_by_email?: string;
   created_at: string;
+}
+
+export interface AlertLog {
+  id: number;
+  title: string;
+  message: string;
+  level: AlertLevel;
+  source?: string;
+  target_role?: UserRole;
+  is_read: boolean;
+  read_at?: string;
+  read_by_email?: string;
+  created_at: string;
+  deleted_at?: string;
+  deleted_by_email?: string;
 }
 
 export interface AlertThreshold {
@@ -89,6 +105,8 @@ export interface AlertThreshold {
   temperature_critical_threshold: number;
   ram_warning_threshold: number;
   ram_critical_threshold: number;
+  humidity_warning_threshold: number;
+  humidity_critical_threshold: number;
   updated_by?: string;
 }
 
@@ -104,8 +122,20 @@ export interface ScheduledTask {
   completed_at?: string;
   is_recurring: boolean;
   recurrence_pattern?: string;
+  assigned_role?: UserRole;
   created_by?: number;
+  completed_by_email?: string;
+  completion_comment?: string;
   created_at: string;
+}
+
+export interface TaskCompletionHistory {
+  id: number;
+  task_id: number;
+  completed_at: string;
+  completed_by_email: string;
+  completion_comment?: string;
+  scheduled_date: string;
 }
 
 export interface LoginRequest {

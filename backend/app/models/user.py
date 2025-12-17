@@ -7,7 +7,6 @@ from app.core.database import Base
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     OPERATOR = "operator"
-    MONITOR = "monitor"
     TECHNICIAN = "technician"
 
 

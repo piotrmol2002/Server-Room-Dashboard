@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 from typing import List
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.alert import Alert
 from app.models.alert_deletion import AlertDeletion
-from app.schemas.alert import AlertResponse, AlertCreate
+from app.schemas.alert import AlertResponse, AlertCreate, AlertLogResponse
 from app.routes.auth import get_current_active_user
 from app.core.timezone import now_warsaw
 
@@ -61,9 +61,40 @@ def mark_alert_read(
         raise HTTPException(status_code=404, detail="Alert not found")
 
     alert.is_read = True
+    alert.read_at = now_warsaw()
+    alert.read_by_user_id = current_user.id
+    alert.read_by_email = current_user.email
     db.commit()
     db.refresh(alert)
     return alert
+
+
+@router.post("/mark-all-read")
+def mark_all_alerts_read(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    query = db.query(Alert).filter(Alert.is_read == False)
+
+    if current_user.role != UserRole.ADMIN:
+        query = query.filter(
+            or_(
+                Alert.target_role == current_user.role,
+                Alert.target_role == None
+            )
+        )
+
+    alerts = query.all()
+    count = len(alerts)
+
+    for alert in alerts:
+        alert.is_read = True
+        alert.read_at = now_warsaw()
+        alert.read_by_user_id = current_user.id
+        alert.read_by_email = current_user.email
+
+    db.commit()
+    return {"message": f"Marked {count} alerts as read"}
 
 
 @router.delete("/{alert_id}")
@@ -91,3 +122,56 @@ def delete_alert(
     db.delete(alert)
     db.commit()
     return {"message": "Alert deleted successfully"}
+
+
+@router.get("/logs/history", response_model=List[AlertLogResponse])
+def get_alert_logs(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Only admins can view alert logs")
+
+    alerts = db.query(Alert).order_by(desc(Alert.created_at)).offset(skip).limit(limit).all()
+
+    deleted_alerts = db.query(AlertDeletion).order_by(desc(AlertDeletion.deleted_at)).offset(skip).limit(limit).all()
+
+    result = []
+
+    for alert in alerts:
+        result.append(AlertLogResponse(
+            id=alert.id,
+            title=alert.title,
+            message=alert.message,
+            level=alert.level,
+            source=alert.source,
+            target_role=alert.target_role,
+            is_read=alert.is_read,
+            read_at=alert.read_at,
+            read_by_email=alert.read_by_email,
+            created_at=alert.created_at,
+            deleted_at=None,
+            deleted_by_email=None
+        ))
+
+    for deleted in deleted_alerts:
+        result.append(AlertLogResponse(
+            id=deleted.alert_id,
+            title=deleted.alert_title,
+            message=deleted.alert_message,
+            level=deleted.alert_level,
+            source=deleted.alert_source,
+            target_role=None,
+            is_read=True,
+            read_at=None,
+            read_by_email=None,
+            created_at=deleted.deleted_at,
+            deleted_at=deleted.deleted_at,
+            deleted_by_email=deleted.deleted_by_email
+        ))
+
+    result.sort(key=lambda x: x.created_at, reverse=True)
+
+    return result[:limit]

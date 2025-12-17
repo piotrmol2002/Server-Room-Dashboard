@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Enum, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Enum, Boolean, ForeignKey
 from sqlalchemy.sql import func
 import enum
 from app.core.database import Base
@@ -14,7 +14,6 @@ class AlertLevel(str, enum.Enum):
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     OPERATOR = "operator"
-    MONITOR = "monitor"
     TECHNICIAN = "technician"
 
 
@@ -28,4 +27,7 @@ class Alert(Base):
     source = Column(String, nullable=True)
     target_role = Column(Enum(UserRole), nullable=True)
     is_read = Column(Boolean, default=False)
+    read_at = Column(DateTime(timezone=True), nullable=True)
+    read_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    read_by_email = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

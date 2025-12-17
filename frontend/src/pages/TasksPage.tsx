@@ -1,15 +1,28 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tasksApi, serversApi } from '../services/api';
-import { ScheduledTask, TaskStatus, TaskType, UserRole } from '../types';
+import { ScheduledTask, TaskStatus, TaskType, UserRole, TaskCompletionHistory } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { format } from 'date-fns';
+
+const OPERATOR_TASK_TYPES: TaskType[] = [TaskType.BACKUP, TaskType.RESTART, TaskType.UPDATE];
+const TECHNICIAN_TASK_TYPES: TaskType[] = [TaskType.MAINTENANCE, TaskType.DIAGNOSTIC];
+
+const roleColors: Record<string, { bg: string; color: string }> = {
+  [UserRole.OPERATOR]: { bg: '#dbeafe', color: '#1e40af' },
+  [UserRole.TECHNICIAN]: { bg: '#fef3c7', color: '#92400e' },
+};
 
 export default function TasksPage() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [statusFilter, setStatusFilter] = useState<TaskStatus | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
+  const [completionComment, setCompletionComment] = useState('');
+  const [taskHistory, setTaskHistory] = useState<TaskCompletionHistory[]>([]);
   const [editingTask, setEditingTask] = useState<ScheduledTask | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -19,6 +32,7 @@ export default function TasksPage() {
     scheduled_time: '',
     is_recurring: false,
     recurrence_pattern: '',
+    assigned_role: '' as UserRole | '',
   });
 
   const { data: tasks, isLoading: tasksLoading } = useQuery({
@@ -86,9 +100,30 @@ export default function TasksPage() {
     },
   });
 
+  const completeMutation = useMutation({
+    mutationFn: ({ id, comment }: { id: number; comment?: string }) => tasksApi.complete(id, comment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      setShowCompleteModal(false);
+      setSelectedTask(null);
+      setCompletionComment('');
+      alert('Task marked as completed');
+    },
+    onError: (error: any) => {
+      alert(`Failed to complete: ${error.response?.data?.detail || error.message}`);
+    },
+  });
+
   const filteredTasks = tasks?.filter((task) => {
     return statusFilter === 'all' || task.status === statusFilter;
   });
+
+  const getAvailableTaskTypes = (role: UserRole | ''): TaskType[] => {
+    if (!role) return [...OPERATOR_TASK_TYPES, ...TECHNICIAN_TASK_TYPES];
+    if (role === UserRole.OPERATOR) return OPERATOR_TASK_TYPES;
+    if (role === UserRole.TECHNICIAN) return TECHNICIAN_TASK_TYPES;
+    return [...OPERATOR_TASK_TYPES, ...TECHNICIAN_TASK_TYPES];
+  };
 
   const resetForm = () => {
     setFormData({
@@ -99,6 +134,7 @@ export default function TasksPage() {
       scheduled_time: '',
       is_recurring: false,
       recurrence_pattern: '',
+      assigned_role: '',
     });
   };
 
@@ -110,6 +146,7 @@ export default function TasksPage() {
       target_server: formData.target_server || null,
       description: formData.description || null,
       recurrence_pattern: formData.recurrence_pattern || null,
+      assigned_role: formData.assigned_role || null,
     };
 
     if (editingTask) {
@@ -129,6 +166,7 @@ export default function TasksPage() {
       scheduled_time: format(new Date(task.scheduled_time), "yyyy-MM-dd'T'HH:mm"),
       is_recurring: task.is_recurring,
       recurrence_pattern: task.recurrence_pattern || '',
+      assigned_role: task.assigned_role || '',
     });
     setShowModal(true);
   };
@@ -142,6 +180,29 @@ export default function TasksPage() {
   const handleExecute = (task: ScheduledTask) => {
     if (confirm(`Execute "${task.name}" now?`)) {
       executeMutation.mutate(task.id);
+    }
+  };
+
+  const handleComplete = (task: ScheduledTask) => {
+    setSelectedTask(task);
+    setCompletionComment('');
+    setShowCompleteModal(true);
+  };
+
+  const submitComplete = () => {
+    if (selectedTask) {
+      completeMutation.mutate({ id: selectedTask.id, comment: completionComment || undefined });
+    }
+  };
+
+  const handleShowHistory = async (task: ScheduledTask) => {
+    try {
+      const response = await tasksApi.getHistory(task.id);
+      setTaskHistory(response.data);
+      setSelectedTask(task);
+      setShowHistoryModal(true);
+    } catch (error: any) {
+      alert(`Failed to load history: ${error.response?.data?.detail || error.message}`);
     }
   };
 
@@ -225,6 +286,7 @@ export default function TasksPage() {
             <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Task Name</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Type</th>
+              <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Assigned To</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Target</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Scheduled</th>
               <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: '600' }}>Status</th>
@@ -251,6 +313,24 @@ export default function TasksPage() {
                   >
                     {task.task_type}
                   </span>
+                </td>
+                <td style={{ padding: '0.75rem' }}>
+                  {task.assigned_role ? (
+                    <span
+                      style={{
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        background: roleColors[task.assigned_role]?.bg || '#f3f4f6',
+                        color: roleColors[task.assigned_role]?.color || '#374151',
+                      }}
+                    >
+                      {task.assigned_role}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#64748b' }}>-</span>
+                  )}
                 </td>
                 <td style={{ padding: '0.75rem', color: '#64748b' }}>{task.target_server || 'All'}</td>
                 <td style={{ padding: '0.75rem', color: '#64748b' }}>
@@ -284,12 +364,35 @@ export default function TasksPage() {
                     {task.status}
                   </span>
                 </td>
-                <td style={{ padding: '0.75rem' }}>{task.is_recurring ? 'Yes' : 'No'}</td>
+                <td style={{ padding: '0.75rem' }}>
+                  {task.is_recurring ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span>Yes</span>
+                      <button
+                        onClick={() => handleShowHistory(task)}
+                        style={{
+                          padding: '0.125rem 0.375rem',
+                          background: '#f3f4f6',
+                          color: '#374151',
+                          borderRadius: '4px',
+                          fontSize: '0.625rem',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          border: '1px solid #e2e8f0',
+                        }}
+                      >
+                        History
+                      </button>
+                    </div>
+                  ) : (
+                    'No'
+                  )}
+                </td>
                 {canModify && (
                   <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                    {task.status === 'pending' && (
+                    {(task.is_recurring || task.status === 'pending') && (
                       <button
-                        onClick={() => handleExecute(task)}
+                        onClick={() => handleComplete(task)}
                         style={{
                           padding: '0.25rem 0.75rem',
                           background: '#10b981',
@@ -301,38 +404,42 @@ export default function TasksPage() {
                           cursor: 'pointer',
                         }}
                       >
-                        Execute
+                        Complete
                       </button>
                     )}
-                    <button
-                      onClick={() => handleEdit(task)}
-                      style={{
-                        padding: '0.25rem 0.75rem',
-                        background: '#3b82f6',
-                        color: 'white',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        marginRight: '0.5rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(task)}
-                      style={{
-                        padding: '0.25rem 0.75rem',
-                        background: '#ef4444',
-                        color: 'white',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {user?.role === UserRole.ADMIN && (
+                      <>
+                        <button
+                          onClick={() => handleEdit(task)}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            background: '#3b82f6',
+                            color: 'white',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            marginRight: '0.5rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(task)}
+                          style={{
+                            padding: '0.25rem 0.75rem',
+                            background: '#ef4444',
+                            color: 'white',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 )}
               </tr>
@@ -415,6 +522,36 @@ export default function TasksPage() {
                 />
               </div>
 
+              {user?.role === UserRole.ADMIN && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                    Assign to Role
+                  </label>
+                  <select
+                    value={formData.assigned_role}
+                    onChange={(e) => {
+                      const role = e.target.value as UserRole | '';
+                      const availableTypes = getAvailableTaskTypes(role);
+                      const newTaskType = availableTypes.includes(formData.task_type as TaskType)
+                        ? formData.task_type
+                        : availableTypes[0];
+                      setFormData({ ...formData, assigned_role: role, task_type: newTaskType });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.5rem',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '4px',
+                      fontSize: '1rem',
+                    }}
+                  >
+                    <option value="">No specific role</option>
+                    <option value={UserRole.OPERATOR}>Operator (backup, restart, update)</option>
+                    <option value={UserRole.TECHNICIAN}>Technician (maintenance, diagnostic)</option>
+                  </select>
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
@@ -432,11 +569,11 @@ export default function TasksPage() {
                       fontSize: '1rem',
                     }}
                   >
-                    <option value="backup">Backup</option>
-                    <option value="restart">Restart</option>
-                    <option value="maintenance">Maintenance</option>
-                    <option value="diagnostic">Diagnostic</option>
-                    <option value="update">Update</option>
+                    {getAvailableTaskTypes(formData.assigned_role).map((type) => (
+                      <option key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -565,6 +702,185 @@ export default function TasksPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showCompleteModal && selectedTask && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '2rem',
+              borderRadius: '8px',
+              width: '500px',
+              maxWidth: '90%',
+            }}
+          >
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' }}>
+              Complete Task
+            </h2>
+            <p style={{ marginBottom: '1rem', color: '#64748b' }}>
+              Mark "{selectedTask.name}" as completed
+            </p>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>
+                Comment (optional)
+              </label>
+              <textarea
+                value={completionComment}
+                onChange={(e) => setCompletionComment(e.target.value)}
+                placeholder="Add any notes about task completion..."
+                rows={4}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <button
+                onClick={submitComplete}
+                disabled={completeMutation.isPending}
+                style={{
+                  flex: 1,
+                  padding: '0.75rem',
+                  background: '#10b981',
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  cursor: completeMutation.isPending ? 'not-allowed' : 'pointer',
+                  opacity: completeMutation.isPending ? 0.5 : 1,
+                }}
+              >
+                {completeMutation.isPending ? 'Completing...' : 'Complete Task'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowCompleteModal(false);
+                  setSelectedTask(null);
+                  setCompletionComment('');
+                }}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#64748b',
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showHistoryModal && selectedTask && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              padding: '2rem',
+              borderRadius: '8px',
+              width: '700px',
+              maxWidth: '90%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+            }}
+          >
+            <h2 style={{ fontSize: '1.5rem', fontWeight: '700', marginBottom: '1rem' }}>
+              Completion History
+            </h2>
+            <p style={{ marginBottom: '1.5rem', color: '#64748b' }}>
+              History for "{selectedTask.name}"
+            </p>
+
+            {taskHistory.length > 0 ? (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Date</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Completed By</th>
+                    <th style={{ padding: '0.75rem', textAlign: 'left' }}>Comment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {taskHistory.map((record) => (
+                    <tr key={record.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '0.75rem' }}>
+                        {format(new Date(record.completed_at), 'MMM dd, yyyy HH:mm')}
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#64748b' }}>
+                        {record.completed_by_email}
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#64748b' }}>
+                        {record.completion_comment || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                No completion history yet
+              </p>
+            )}
+
+            <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+              <button
+                onClick={() => {
+                  setShowHistoryModal(false);
+                  setSelectedTask(null);
+                  setTaskHistory([]);
+                }}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#64748b',
+                  color: 'white',
+                  borderRadius: '4px',
+                  fontSize: '1rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

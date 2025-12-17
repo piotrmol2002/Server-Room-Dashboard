@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Alert, AlertLevel } from '../types';
 import { formatInTimeZone } from 'date-fns-tz';
 import { alertsApi } from '../services/api';
@@ -24,6 +25,7 @@ const levelLabels = {
 
 function AlertsList({ alerts }: AlertsListProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleDelete = async (alertId: number) => {
     if (!confirm('Are you sure you want to delete this alert?')) {
@@ -152,11 +154,15 @@ function AlertsList({ alerts }: AlertsListProps) {
       {alerts.length > 5 && (
         <div style={{ marginTop: '1rem', textAlign: 'center' }}>
           <button
+            onClick={() => navigate('/alerts')}
             style={{
               padding: '0.5rem 1rem',
               fontSize: '0.875rem',
               color: '#2563eb',
               fontWeight: '500',
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
             }}
           >
             View all {alerts.length} alerts

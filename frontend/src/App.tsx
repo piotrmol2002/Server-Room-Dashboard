@@ -6,6 +6,7 @@ import DashboardPage from './pages/DashboardPage'
 import UsersPage from './pages/UsersPage'
 import ServersPage from './pages/ServersPage'
 import TasksPage from './pages/TasksPage'
+import AlertsPage from './pages/AlertsPage'
 import AlertSettingsPage from './pages/AlertSettingsPage'
 import Layout from './components/Layout'
 
@@ -37,6 +38,7 @@ function App() {
         <Route path="users" element={<UsersPage />} />
         <Route path="servers" element={<ServersPage />} />
         <Route path="tasks" element={<TasksPage />} />
+        <Route path="alerts" element={<AlertsPage />} />
         <Route path="alert-settings" element={<AlertSettingsPage />} />
       </Route>
     </Routes>

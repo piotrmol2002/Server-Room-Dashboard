@@ -8,6 +8,7 @@ from .scheduled_task import ScheduledTask, TaskType, TaskStatus
 from .server_metrics_history import ServerMetricsHistory
 from .stress_test_log import StressTestLog
 from .server_baseline import ServerBaseline
+from .task_completion_history import TaskCompletionHistory
 
 __all__ = [
     "User",
@@ -25,4 +26,5 @@ __all__ = [
     "ServerMetricsHistory",
     "StressTestLog",
     "ServerBaseline",
+    "TaskCompletionHistory",
 ]

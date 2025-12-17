@@ -4,8 +4,10 @@ import type {
   Server,
   Environment,
   Alert,
+  AlertLog,
   AlertThreshold,
   ScheduledTask,
+  TaskCompletionHistory,
   LoginRequest,
   RegisterRequest,
   AuthResponse
@@ -79,7 +81,9 @@ export const alertsApi = {
   getAll: (unread_only = false) => api.get<Alert[]>('/api/alerts', { params: { unread_only } }),
   getById: (id: number) => api.get<Alert>(`/api/alerts/${id}`),
   markRead: (id: number) => api.patch<Alert>(`/api/alerts/${id}/read`),
+  markAllRead: () => api.post('/api/alerts/mark-all-read'),
   delete: (id: number) => api.delete(`/api/alerts/${id}`),
+  getLogs: () => api.get<AlertLog[]>('/api/alerts/logs/history'),
 };
 
 // Alert Thresholds API
@@ -96,6 +100,9 @@ export const tasksApi = {
   update: (id: number, data: Partial<ScheduledTask>) => api.patch<ScheduledTask>(`/api/tasks/${id}`, data),
   delete: (id: number) => api.delete(`/api/tasks/${id}`),
   execute: (id: number) => api.post(`/api/tasks/${id}/execute`),
+  complete: (id: number, comment?: string) => api.post<ScheduledTask>(`/api/tasks/${id}/complete`, { comment }),
+  getHistory: (id: number) => api.get<TaskCompletionHistory[]>(`/api/tasks/${id}/history`),
+  canCompleteToday: (id: number) => api.get<{ can_complete: boolean }>(`/api/tasks/${id}/can-complete-today`),
 };
 
 export default api;

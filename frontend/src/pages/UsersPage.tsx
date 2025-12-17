@@ -13,7 +13,7 @@ export default function UsersPage() {
     username: '',
     full_name: '',
     password: '',
-    role: 'monitor' as UserRole,
+    role: 'operator' as UserRole,
     is_active: true,
   });
 
@@ -69,7 +69,7 @@ export default function UsersPage() {
       username: '',
       full_name: '',
       password: '',
-      role: 'monitor' as UserRole,
+      role: 'operator' as UserRole,
       is_active: true,
     });
   };
@@ -386,7 +386,6 @@ export default function UsersPage() {
                     <option value="admin">Admin</option>
                     <option value="operator">Operator</option>
                     <option value="technician">Technician</option>
-                    <option value="monitor">Monitor</option>
                   </select>
                 </div>
 

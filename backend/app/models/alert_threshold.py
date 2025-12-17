@@ -20,5 +20,9 @@ class AlertThreshold(Base):
     ram_warning_threshold = Column(Float, default=85.0, nullable=False)
     ram_critical_threshold = Column(Float, default=95.0, nullable=False)
 
+    # Humidity
+    humidity_warning_threshold = Column(Float, default=60.0, nullable=False)
+    humidity_critical_threshold = Column(Float, default=75.0, nullable=False)
+
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     updated_by = Column(String, nullable=True)

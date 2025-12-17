@@ -35,8 +35,11 @@ def simulate_server_metrics():
         from app.models.stress_test_log import StressTestLog
         from app.models.server_baseline import ServerBaseline
 
+        from app.models.environment import Environment
+
         servers = db.query(Server).order_by(Server.id).all()
         baselines = {b.server_id: b for b in db.query(ServerBaseline).all()}
+        environment = db.query(Environment).first()
 
         running_tests = db.query(StressTestLog).filter(
             StressTestLog.status == "running"
@@ -107,6 +110,18 @@ def simulate_server_metrics():
 
             metrics_updated += 1
 
+        if environment:
+            base_power = 2.5
+            if environment.ac_status:
+                base_power += 0.0
+
+            server_power = 0.0
+            for server in servers:
+                if server.status == ServerStatus.ONLINE:
+                    server_power += 0.3 + (server.cpu_usage / 100 * 0.5) + (server.ram_usage / 100 * 0.3)
+
+            environment.power_consumption = round(base_power + server_power, 2)
+
         db.commit()
 
         servers_data = []
@@ -153,12 +168,15 @@ def check_alerts():
         from app.models.user import UserRole
         from datetime import datetime, timedelta
 
+        from app.models.environment import Environment
+
         thresholds = db.query(AlertThreshold).first()
         if not thresholds:
             print("[WORKER] No alert thresholds configured")
             return "No thresholds configured"
 
         servers = db.query(Server).filter(Server.status == ServerStatus.ONLINE).all()
+        environment = db.query(Environment).first()
         alerts_generated = 0
 
         for server in servers:
@@ -238,6 +256,33 @@ def check_alerts():
                         level=AlertLevel.WARNING,
                         source=server.name,
                         target_role=UserRole.OPERATOR,
+                        is_read=False
+                    )
+                    db.add(alert)
+                    alerts_generated += 1
+
+        if environment:
+            if environment.humidity >= thresholds.humidity_critical_threshold:
+                if not _alert_exists(db, "Environment", "Critical Humidity", minutes=5):
+                    alert = Alert(
+                        title="Critical Humidity",
+                        message=f"Room humidity at {environment.humidity:.1f}%",
+                        level=AlertLevel.CRITICAL,
+                        source="Environment",
+                        target_role=UserRole.TECHNICIAN,
+                        is_read=False
+                    )
+                    db.add(alert)
+                    alerts_generated += 1
+
+            elif environment.humidity >= thresholds.humidity_warning_threshold:
+                if not _alert_exists(db, "Environment", "High Humidity", minutes=5):
+                    alert = Alert(
+                        title="High Humidity",
+                        message=f"Room humidity at {environment.humidity:.1f}%",
+                        level=AlertLevel.WARNING,
+                        source="Environment",
+                        target_role=UserRole.TECHNICIAN,
                         is_read=False
                     )
                     db.add(alert)
