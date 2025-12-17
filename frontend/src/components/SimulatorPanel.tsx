@@ -172,28 +172,22 @@ export default function SimulatorPanel({ server: initialServer, onClose }: Simul
             border: '1px solid #e2e8f0'
           }}>
             <h3 style={{ fontWeight: '600', marginBottom: '1rem' }}>Power Control</h3>
-            {(() => {
-              const canControl = user?.role === UserRole.ADMIN || user?.role === UserRole.OPERATOR;
-              return (
-                <button
-                  onClick={handlePowerToggle}
-                  disabled={isPowerChanging || !canControl}
-                  title={!canControl ? 'Only Admin and Operator can control server power' : undefined}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    background: !canControl ? '#d1d5db' : (server.status === 'online' ? '#ef4444' : '#10b981'),
-                    color: !canControl ? '#6b7280' : 'white',
-                    borderRadius: '4px',
-                    fontWeight: '500',
-                    opacity: isPowerChanging ? 0.6 : 1,
-                    cursor: (isPowerChanging || !canControl) ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {!canControl ? 'No Permission' : (isPowerChanging ? 'Processing...' : (server.status === 'online' ? 'Turn OFF' : 'Turn ON'))}
-                </button>
-              );
-            })()}
+            <button
+              onClick={handlePowerToggle}
+              disabled={isPowerChanging}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                background: server.status === 'online' ? '#ef4444' : '#10b981',
+                color: 'white',
+                borderRadius: '4px',
+                fontWeight: '500',
+                opacity: isPowerChanging ? 0.6 : 1,
+                cursor: isPowerChanging ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isPowerChanging ? 'Processing...' : (server.status === 'online' ? 'Turn OFF' : 'Turn ON')}
+            </button>
           </div>
 
           <div style={{

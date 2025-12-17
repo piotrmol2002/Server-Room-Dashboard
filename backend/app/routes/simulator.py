@@ -30,12 +30,6 @@ def control_server_power(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR]:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions"
-        )
-
     server = db.query(Server).filter(Server.id == server_id).first()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
