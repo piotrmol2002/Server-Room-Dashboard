@@ -8,6 +8,7 @@ import ServersPage from './pages/ServersPage'
 import TasksPage from './pages/TasksPage'
 import AlertsPage from './pages/AlertsPage'
 import AlertSettingsPage from './pages/AlertSettingsPage'
+import ControlPanelPage from './pages/ControlPanelPage'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="alerts" element={<AlertsPage />} />
         <Route path="alert-settings" element={<AlertSettingsPage />} />
+        <Route path="control-panel" element={<ControlPanelPage />} />
       </Route>
     </Routes>
   )

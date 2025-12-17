@@ -115,6 +115,19 @@ export default function Layout() {
                     Alert Settings
                   </Link>
                 </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <Link
+                    to="/control-panel"
+                    style={{
+                      display: 'block',
+                      padding: '0.75rem',
+                      borderRadius: '4px',
+                      transition: 'background 0.2s'
+                    }}
+                  >
+                    Control Panel
+                  </Link>
+                </li>
               </>
             )}
           </ul>

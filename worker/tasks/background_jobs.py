@@ -122,6 +122,12 @@ def simulate_server_metrics():
 
             environment.power_consumption = round(base_power + server_power, 2)
 
+            if environment.ups_on_battery and environment.ups_battery > 0:
+                ups_capacity_kwh = 10.0
+                drain_per_tick = (environment.power_consumption / ups_capacity_kwh) * (30.0 / 3600.0) * 100.0
+                environment.ups_battery = max(0, environment.ups_battery - drain_per_tick)
+                print(f"[UPS] Battery draining: {environment.ups_battery:.1f}% (drain: {drain_per_tick:.2f}%)")
+
         db.commit()
 
         servers_data = []
@@ -283,6 +289,56 @@ def check_alerts():
                         level=AlertLevel.WARNING,
                         source="Environment",
                         target_role=UserRole.TECHNICIAN,
+                        is_read=False
+                    )
+                    db.add(alert)
+                    alerts_generated += 1
+
+            if environment.ups_on_battery:
+                if not _alert_exists(db, "UPS", "Running on Battery", minutes=10):
+                    alert = Alert(
+                        title="Running on Battery",
+                        message="UPS is running on battery power - AC power lost",
+                        level=AlertLevel.INFO,
+                        source="UPS",
+                        target_role=None,
+                        is_read=False
+                    )
+                    db.add(alert)
+                    alerts_generated += 1
+
+            if environment.ups_battery <= 25 and environment.ups_battery > 0:
+                if not _alert_exists(db, "UPS", "Critical Battery Level", minutes=5):
+                    alert = Alert(
+                        title="Critical Battery Level",
+                        message=f"UPS battery at {environment.ups_battery:.0f}% - immediate action required",
+                        level=AlertLevel.CRITICAL,
+                        source="UPS",
+                        target_role=None,
+                        is_read=False
+                    )
+                    db.add(alert)
+                    alerts_generated += 1
+            elif environment.ups_battery <= 50 and environment.ups_battery > 25:
+                if not _alert_exists(db, "UPS", "Low Battery Level", minutes=5):
+                    alert = Alert(
+                        title="Low Battery Level",
+                        message=f"UPS battery at {environment.ups_battery:.0f}%",
+                        level=AlertLevel.ERROR,
+                        source="UPS",
+                        target_role=None,
+                        is_read=False
+                    )
+                    db.add(alert)
+                    alerts_generated += 1
+            elif environment.ups_battery <= 75 and environment.ups_battery > 50:
+                if not _alert_exists(db, "UPS", "Battery Warning", minutes=5):
+                    alert = Alert(
+                        title="Battery Warning",
+                        message=f"UPS battery at {environment.ups_battery:.0f}%",
+                        level=AlertLevel.WARNING,
+                        source="UPS",
+                        target_role=None,
                         is_read=False
                     )
                     db.add(alert)
