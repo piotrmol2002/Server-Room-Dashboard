@@ -63,9 +63,9 @@ def init_db():
             ),
             User(
                 email="technician@serwerownia.pl",
-                username="technician",
+                username="tech",
                 full_name="Technician User",
-                hashed_password=get_password_hash("technician123"),
+                hashed_password=get_password_hash("tech123"),
                 role=UserRole.TECHNICIAN,
                 is_active=True
             ),
@@ -120,7 +120,7 @@ def init_db():
         print("\nDefault users created:")
         print("- admin / admin123 (Admin)")
         print("- operator / operator123 (Operator)")
-        print("- technician / technician123 (Technician)")
+        print("- tech / tech123 (Technician)")
 
     except Exception as e:
         print(f"Error initializing database: {e}")
