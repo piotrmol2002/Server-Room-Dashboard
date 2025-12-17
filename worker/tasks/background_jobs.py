@@ -111,16 +111,45 @@ def simulate_server_metrics():
             metrics_updated += 1
 
         if environment:
-            base_power = 2.5
+            online_servers = [s for s in servers if s.status == ServerStatus.ONLINE]
+
+            if online_servers:
+                avg_server_temp = sum(s.temperature for s in online_servers) / len(online_servers)
+                server_heat_contribution = (avg_server_temp - 40) * 0.15 * len(online_servers)
+            else:
+                server_heat_contribution = 0
+
+            ambient_temp = 22.0
+
             if environment.ac_status:
-                base_power += 0.0
+                temp_diff = environment.room_temperature - environment.ac_target_temp
+                cooling_rate = min(0.5, max(0.1, temp_diff * 0.1))
+                target_temp = environment.ac_target_temp + server_heat_contribution * 0.3
+            else:
+                cooling_rate = 0
+                target_temp = ambient_temp + server_heat_contribution
+
+            current_temp = environment.room_temperature
+            if current_temp < target_temp:
+                environment.room_temperature = min(target_temp, current_temp + 0.2)
+            elif current_temp > target_temp:
+                environment.room_temperature = max(target_temp, current_temp - cooling_rate)
+
+            environment.room_temperature = round(max(15, min(45, environment.room_temperature)), 1)
+
+            base_power = 1.5
 
             server_power = 0.0
-            for server in servers:
-                if server.status == ServerStatus.ONLINE:
-                    server_power += 0.3 + (server.cpu_usage / 100 * 0.5) + (server.ram_usage / 100 * 0.3)
+            for server in online_servers:
+                server_power += 0.3 + (server.cpu_usage / 100 * 0.5) + (server.ram_usage / 100 * 0.3)
 
-            environment.power_consumption = round(base_power + server_power, 2)
+            ac_power = 0.0
+            if environment.ac_status:
+                temp_diff = environment.room_temperature - environment.ac_target_temp
+                ac_power = 0.5 + max(0, temp_diff * 0.3)
+                ac_power = min(ac_power, 3.0)
+
+            environment.power_consumption = round(base_power + server_power + ac_power, 2)
 
             if environment.ups_on_battery and environment.ups_battery > 0:
                 ups_capacity_kwh = 10.0

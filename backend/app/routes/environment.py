@@ -10,10 +10,10 @@ router = APIRouter()
 
 
 def can_modify_environment(current_user: User = Depends(get_current_active_user)) -> User:
-    if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR]:
+    if current_user.role not in [UserRole.ADMIN, UserRole.OPERATOR, UserRole.TECHNICIAN]:
         raise HTTPException(
             status_code=403,
-            detail="Only admins and operators can modify environment settings"
+            detail="Only admins, operators and technicians can modify environment settings"
         )
     return current_user
 
