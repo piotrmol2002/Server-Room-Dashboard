@@ -1,6 +1,5 @@
-import math
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class ThermalModel:
