@@ -13,5 +13,5 @@ class Environment(Base):
     ac_target_temp = Column(Float, default=20.0)  # target temperature
     ups_battery = Column(Float, default=100.0)  # percentage
     ups_on_battery = Column(Boolean, default=False)  # is UPS running on battery
-    power_consumption = Column(Float, default=0.0)  # kW
+    power_consumption = Column(Float, default=0.0)  # kWh
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

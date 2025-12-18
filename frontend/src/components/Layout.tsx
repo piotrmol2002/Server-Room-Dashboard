@@ -1,9 +1,12 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { UserRole } from '../types'
+import { useWebSocket } from '../hooks/useWebSocket'
+import { WebSocketContext } from '../contexts/WebSocketContext'
 
 export default function Layout() {
   const { user, logout } = useAuthStore()
+  const { isConnected } = useWebSocket()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -177,7 +180,9 @@ export default function Layout() {
         padding: '2rem',
         background: '#f8fafc'
       }}>
-        <Outlet />
+        <WebSocketContext.Provider value={{ isConnected }}>
+          <Outlet />
+        </WebSocketContext.Provider>
       </main>
     </div>
   )

@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
 import { authApi } from '../services/api';
-import { wsService } from '../services/websocket';
 
 interface AuthState {
   user: User | null;
@@ -34,14 +33,10 @@ export const useAuthStore = create<AuthState>()(
           user: userResponse.data,
           isAuthenticated: true,
         });
-
-        // Connect WebSocket
-        wsService.connect(access_token);
       },
 
       logout: () => {
         localStorage.removeItem('token');
-        wsService.disconnect();
         set({
           token: null,
           user: null,
@@ -56,8 +51,6 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.getMe();
           set({ user: response.data, isAuthenticated: true });
-
-          wsService.connect(token);
         } catch (error) {
           get().logout();
         }

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useServers } from '../hooks/useServers';
 import { useEnvironment } from '../hooks/useEnvironment';
 import { useAlerts } from '../hooks/useAlerts';
-import { useWebSocket } from '../hooks/useWebSocket';
+import { useWebSocketStatus } from '../contexts/WebSocketContext';
 import ServerCard from '../components/ServerCard';
 import EnvironmentPanel from '../components/EnvironmentPanel';
 import AlertsList from '../components/AlertsList';
@@ -11,7 +11,7 @@ import ServerMetricsChart from '../components/ServerMetricsChart';
 import { Server } from '../types';
 
 export default function DashboardPage() {
-  const { isConnected } = useWebSocket();
+  const { isConnected } = useWebSocketStatus();
   const { data: servers, isLoading: serversLoading } = useServers({
     refetchInterval: isConnected ? false : 30000,
   });
