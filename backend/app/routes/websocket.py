@@ -46,11 +46,18 @@ class ConnectionManager:
 
     async def start_redis_listener(self):
         await redis_pubsub.subscribe("metrics_update", self.handle_metrics_update)
+        await redis_pubsub.subscribe("alerts_update", self.handle_alerts_update)
         self.redis_listener_task = asyncio.create_task(redis_pubsub.listen())
 
     async def handle_metrics_update(self, data: dict):
         await self.broadcast({
             "type": "metrics_update",
+            "data": data
+        })
+
+    async def handle_alerts_update(self, data: dict):
+        await self.broadcast({
+            "type": "alerts_update",
             "data": data
         })
 

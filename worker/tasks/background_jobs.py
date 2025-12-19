@@ -388,6 +388,31 @@ def check_alerts():
                     alerts_generated += 1
 
         db.commit()
+
+        if alerts_generated > 0:
+            all_alerts = db.query(Alert).filter(Alert.is_read == False).order_by(Alert.created_at.desc()).limit(50).all()
+            alerts_data = []
+            for a in all_alerts:
+                alerts_data.append({
+                    'id': a.id,
+                    'title': a.title,
+                    'message': a.message,
+                    'level': a.level.value,
+                    'source': a.source,
+                    'is_read': a.is_read,
+                    'created_at': a.created_at.isoformat() if a.created_at else None
+                })
+
+            try:
+                redis_client.publish('alerts_update', json.dumps({
+                    'alerts': alerts_data,
+                    'new_count': alerts_generated,
+                    'timestamp': time.time()
+                }))
+                print(f"[WORKER] Published {alerts_generated} new alerts to WebSocket")
+            except Exception as redis_error:
+                print(f"[WARN] Failed to publish alerts to Redis: {redis_error}")
+
         print(f"[WORKER] Generated {alerts_generated} new alerts")
         return f"Generated {alerts_generated} alerts"
     except Exception as e:

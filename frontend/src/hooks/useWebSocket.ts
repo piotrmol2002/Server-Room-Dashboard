@@ -56,6 +56,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             }
           }
 
+          if (message.type === 'alerts_update' && message.data) {
+            queryClient.setQueryData(['alerts', true], message.data.alerts);
+            queryClient.setQueryData(['alerts', false], message.data.alerts);
+          }
+
           if (onMessage) {
             onMessage(message);
           }
