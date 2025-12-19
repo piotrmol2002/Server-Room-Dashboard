@@ -550,9 +550,9 @@ celery_app.conf.beat_schedule = {
         'task': 'tasks.background_jobs.simulate_server_metrics',
         'schedule': 5.0,
     },
-    'check-alerts-every-60-seconds': {
+    'check-alerts-every-10-seconds': {
         'task': 'tasks.background_jobs.check_alerts',
-        'schedule': 60.0,
+        'schedule': 10.0,
     },
     'cleanup-old-metrics-daily': {
         'task': 'tasks.background_jobs.cleanup_old_metrics',
